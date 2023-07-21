@@ -7,7 +7,10 @@
 
 #include <signal.h>
 
+#include <algorithm>
 #include <iostream>
+#include <vector>
+#include <string>
 
 using namespace Pistache;
 using namespace Pistache::Rest;
@@ -20,6 +23,7 @@ void waitForShutdownRequest()
   sigaddset(&sigset, SIGHUP);
   sigaddset(&sigset, SIGINT);
   sigaddset(&sigset, SIGTERM);
+  sigaddset(&sigset, SIGQUIT);
   sigprocmask(SIG_BLOCK, &sigset, nullptr);
 
   int sig = 0;
@@ -29,8 +33,15 @@ void waitForShutdownRequest()
   sigprocmask(SIG_UNBLOCK, &sigset, nullptr);
 }
 
-int main() {
-    Config config("config.json");
+int main(int argc, char *argv[]) {
+    std::vector<std::string> args(argv, argv + argc);
+    std::string configPath = "config.json";
+    auto it = std::find(args.begin(), args.end(), "-c");
+    if (it != args.end() && ++it != args.end()) {
+        configPath = *it;
+    }
+
+    Config config(configPath);
     ClipSearchApiController apiController(config);
     
     Address addr(Ipv4::any(), config.port);

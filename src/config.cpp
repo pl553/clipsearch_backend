@@ -11,7 +11,14 @@ using namespace nlohmann;
 Config::Config(std::string pathToConfig) {
     std::ifstream configFile(pathToConfig);
     json config = json::parse(configFile);
-    port = Port(config["port"].get<uint16_t>());
+    std::string port_envar = config["port_envar"].get<std::string>();
+    char* port_c_str = std::getenv(port_envar.c_str());
+    if (port_c_str == nullptr) {
+        port = config["default_port"].get<uint16_t>();
+    }
+    else {
+        port = std::stoi(port_c_str);   
+    }
     threads = config["threads"].get<unsigned int>();
     imageUrls = config["image_urls"].get<std::vector<std::string>>();
 }

@@ -1,9 +1,10 @@
 {
-  "port": 9080,
+  "port_envar": "PORT",
+  "default_port": 3000,
   "threads": 8,
   "image_urls": [
-    "http://localhost/gallery/1.png",
-    "http://localhost/gallery/2.png",
-    "http://localhost/gallery/3.png"
+    "http://localhost/gallery/1.gif",
+    "http://localhost/gallery/2.jpg",
+    "http://localhost/gallery/3.jpg"
   ]
 }
