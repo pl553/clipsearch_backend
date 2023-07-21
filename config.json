@@ -1,0 +1,9 @@
+{
+  "port": 9080,
+  "threads": 8,
+  "image_urls": [
+    "http://localhost/gallery/1.png",
+    "http://localhost/gallery/2.png",
+    "http://localhost/gallery/3.png"
+  ]
+}
