@@ -3,8 +3,8 @@
   "default_port": 3000,
   "threads": 8,
   "image_urls": [
-    "http://localhost/gallery/1.gif",
-    "http://localhost/gallery/2.jpg",
-    "http://localhost/gallery/3.jpg"
+    "http://localhost/static/gallery/1.gif",
+    "http://localhost/static/gallery/2.jpg",
+    "http://localhost/static/gallery/3.jpg"
   ]
 }
