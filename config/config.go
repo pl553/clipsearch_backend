@@ -1,11 +1,8 @@
 package config
 
-const PortEnvar string = "PORT"
-const DefaultPort string = "3000"
+const PORT_ENVAR string = "PORT"
+const DEFAULT_PORT string = "3000"
 
-var ImageUrls = []string{
-	"http://localhost/static/images/1.gif",
-	"http://localhost/static/images/2.jpg",
-	"http://localhost/static/images/3.jpg",
-}
+const DATABASE_CONNECTION_URL_ENVAR string = "POSTGRESQL_URL"
+
 var ImageExtensions = []string{"png", "jpg", "jpeg", "bmp", "gif"}
