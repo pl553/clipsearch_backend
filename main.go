@@ -18,8 +18,8 @@ import (
 var pgPool *pgxpool.Pool
 
 func postGalleryImages(c *gin.Context) {
-	c.Request.ParseForm()
-	rawUrl := c.Request.Form.Get("url")
+	c.Request.ParseMultipartForm(2048)
+	rawUrl := c.Request.FormValue("url")
 	if rawUrl == "" {
 		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"url": "Image url must be non-empty"}))
 		return
