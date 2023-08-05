@@ -18,13 +18,13 @@ import (
 
 var pgPool *pgxpool.Pool
 
-type PostGalleryImagesForm struct {
+type PostImagesForm struct {
 	Url string `schema:"url,required" validate:"url"`
 }
 
-func postGalleryImages(c *gin.Context) {
+func postImages(c *gin.Context) {
 	c.Request.ParseMultipartForm(2048)
-	var form PostGalleryImagesForm
+	var form PostImagesForm
 	if err := binding.ShouldBind(&form, c.Request.Form); err != nil {
 		c.JSON(http.StatusBadRequest, jsend.NewFail(err))
 		return
@@ -59,13 +59,13 @@ func postGalleryImages(c *gin.Context) {
 	c.JSON(http.StatusOK, jsend.New(nil))
 }
 
-type GetGalleryImagesQuery struct {
+type GetImagesQuery struct {
 	Offset int `schema:"offset" validate:"min=0"`
 	Limit  int `schema:"limit" validate:"min=0"`
 }
 
-func getGalleryImages(c *gin.Context) {
-	var query GetGalleryImagesQuery
+func getImages(c *gin.Context) {
+	var query GetImagesQuery
 
 	if err := binding.ShouldBind(&query, c.Request.URL.Query()); err != nil {
 		c.JSON(http.StatusBadRequest, jsend.NewFail(err))
@@ -136,7 +136,7 @@ func main() {
 	}
 	router := gin.New()
 	router.Use(gin.Recovery())
-	router.GET("/api/gallery/images", getGalleryImages)
-	router.POST("/api/gallery/images", postGalleryImages)
+	router.GET("/api/images", getImages)
+	router.POST("/api/images", postImages)
 	router.Run("localhost:" + port)
 }
