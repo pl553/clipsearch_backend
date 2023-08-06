@@ -102,6 +102,45 @@ func getImages(c *gin.Context) {
 	}))
 }
 
+func ginParamsToMap(params gin.Params) map[string][]string {
+	result := make(map[string][]string)
+	for _, kv := range params {
+		result[kv.Key] = []string{kv.Value}
+	}
+	return result
+}
+
+type GetImageByIdQuery struct {
+	Id int `schema:"id" validate:"min=0"`
+}
+
+func getImageById(c *gin.Context) {
+	var query GetImageByIdQuery
+	if err := binding.ShouldBind(&query, ginParamsToMap(c.Params)); err != nil {
+		c.JSON(http.StatusBadRequest, jsend.NewFail(err))
+		return
+	}
+	sqlQuery := "SELECT image_id,url FROM images WHERE image_id=$1"
+	rows, err := pgPool.Query(context.Background(), sqlQuery, query.Id)
+	defer rows.Close()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, jsend.NewError("Internal error", 500, nil))
+		return
+	}
+	if !rows.Next() {
+		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"id": "No image with such id exists"}))
+		return
+	}
+	var imageId int
+	var url string
+	rows.Scan(&imageId, &url)
+	rows.Close()
+	c.JSON(http.StatusOK, jsend.New(gin.H{
+		"id":  imageId,
+		"url": url,
+	}))
+}
+
 func main() {
 	port := os.Getenv(config.PORT_ENVAR)
 	if port == "" {
@@ -138,5 +177,6 @@ func main() {
 	router.Use(gin.Recovery())
 	router.GET("/api/images", getImages)
 	router.POST("/api/images", postImages)
+	router.GET("/api/images/:id", getImageById)
 	router.Run("localhost:" + port)
 }
