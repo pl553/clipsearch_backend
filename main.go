@@ -26,7 +26,7 @@ func postImages(c *gin.Context) {
 	c.Request.ParseMultipartForm(2048)
 	var form PostImagesForm
 	if err := binding.ShouldBind(&form, c.Request.Form); err != nil {
-		c.JSON(http.StatusBadRequest, jsend.NewFail(err))
+		c.JSON(http.StatusBadRequest, jsend.NewFail(err.(binding.BindingError).FieldErrors))
 		return
 	}
 	rawUrl := c.Request.FormValue("url")
@@ -68,7 +68,7 @@ func getImages(c *gin.Context) {
 	var query GetImagesQuery
 
 	if err := binding.ShouldBind(&query, c.Request.URL.Query()); err != nil {
-		c.JSON(http.StatusBadRequest, jsend.NewFail(err))
+		c.JSON(http.StatusBadRequest, jsend.NewFail(err.(binding.BindingError).FieldErrors))
 		return
 	}
 
@@ -117,7 +117,7 @@ type GetImageByIdQuery struct {
 func getImageById(c *gin.Context) {
 	var query GetImageByIdQuery
 	if err := binding.ShouldBind(&query, ginParamsToMap(c.Params)); err != nil {
-		c.JSON(http.StatusBadRequest, jsend.NewFail(err))
+		c.JSON(http.StatusBadRequest, jsend.NewFail(err.(binding.BindingError).FieldErrors))
 		return
 	}
 	sqlQuery := "SELECT image_id,url FROM images WHERE image_id=$1"

@@ -10,7 +10,17 @@ import (
 	"github.com/gorilla/schema"
 )
 
-type FieldErrors = map[string][]string
+type BindingError struct {
+	FieldErrors map[string]string
+}
+
+func (b BindingError) Error() string {
+	var fields []string
+	for field, message := range b.FieldErrors {
+		fields = append(fields, fmt.Sprintf("%s: %s", field, message))
+	}
+	return fmt.Sprintf("BindingError with field errors: %s", strings.Join(fields, ", "))
+}
 
 func schemaErrorToText(err error) string {
 	switch err := err.(type) {
@@ -25,13 +35,10 @@ func schemaErrorToText(err error) string {
 	return "Invalid"
 }
 
-func schemaMultiErrorToFieldErrors(err schema.MultiError) FieldErrors {
-	errorInfo := make(map[string][]string)
+func schemaMultiErrorToFieldErrors(err schema.MultiError) map[string]string {
+	errorInfo := make(map[string]string)
 	for field, fieldError := range err {
-		if errorInfo[field] == nil {
-			errorInfo[field] = make([]string, 0, 1)
-		}
-		errorInfo[field] = append(errorInfo[field], schemaErrorToText(fieldError))
+		errorInfo[field] = schemaErrorToText(fieldError)
 	}
 	return errorInfo
 }
@@ -48,14 +55,11 @@ func validationErrorToText(err validator.FieldError) string {
 	return "Invalid"
 }
 
-func validationErrorsToFieldErrors(err validator.ValidationErrors) FieldErrors {
-	errorInfo := make(map[string][]string)
+func validationErrorsToFieldErrors(err validator.ValidationErrors) map[string]string {
+	errorInfo := make(map[string]string)
 	for _, fieldError := range err {
 		field := fieldError.Field()
-		if errorInfo[field] == nil {
-			errorInfo[field] = make([]string, 0, 1)
-		}
-		errorInfo[field] = append(errorInfo[field], validationErrorToText(fieldError))
+		errorInfo[field] = validationErrorToText(fieldError)
 	}
 	return errorInfo
 }
@@ -79,18 +83,21 @@ func createValidate() *validator.Validate {
 var decoder = schema.NewDecoder()
 var validate = createValidate()
 
-var genericError = map[string][]string{
-	"error": {"An error has occurred"},
+var genericError = BindingError{
+	FieldErrors: map[string]string{"error": "An error has occurred"},
 }
 
-func ShouldBind(dst any, src map[string][]string) FieldErrors {
-	fieldErrors := make(map[string][]string)
+func ShouldBind(dst any, src map[string][]string) error {
+	b := BindingError{
+		FieldErrors: make(map[string]string),
+	}
 	if err := decoder.Decode(dst, src); err != nil {
 		err, ok := err.(schema.MultiError)
 		if err != nil && !ok {
+			log.Print(fmt.Sprintf("ShouldBind: unknown error %s", err))
 			return genericError
 		}
-		fieldErrors = schemaMultiErrorToFieldErrors(err)
+		b.FieldErrors = schemaMultiErrorToFieldErrors(err)
 	}
 	if err := validate.Struct(dst); err != nil {
 		err, ok := err.(validator.ValidationErrors)
@@ -100,14 +107,14 @@ func ShouldBind(dst any, src map[string][]string) FieldErrors {
 		}
 		errs := validationErrorsToFieldErrors(err)
 		// Only merge validation errors into the result if no decoding errors occurred
-		for field, errorTexts := range errs {
-			if fieldErrors[field] == nil {
-				fieldErrors[field] = errorTexts
+		for field, errorText := range errs {
+			if _, hasKey := b.FieldErrors[field]; !hasKey {
+				b.FieldErrors[field] = errorText
 			}
 		}
 	}
-	if len(fieldErrors) == 0 {
+	if len(b.FieldErrors) == 0 {
 		return nil
 	}
-	return fieldErrors
+	return b
 }
