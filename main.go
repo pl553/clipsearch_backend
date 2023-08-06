@@ -46,7 +46,7 @@ func postImages(c *gin.Context) {
 	}
 
 	// TODO add more validation (check that its actually an image, check that the filesize isnt too large, ...)
-	query := `INSERT INTO images (url) VALUES ($1);`
+	query := `INSERT INTO images (source_url) VALUES ($1);`
 	rows, err := pgPool.Query(context.Background(), query, rawUrl)
 	rows.Close()
 	if err != nil {
@@ -82,7 +82,7 @@ func getImages(c *gin.Context) {
 		return
 	}
 
-	sqlQuery := `SELECT image_id, url FROM images ORDER BY image_id LIMIT $1 OFFSET $2;`
+	sqlQuery := `SELECT id, source_url FROM images ORDER BY id LIMIT $1 OFFSET $2;`
 	rows, err := pgPool.Query(context.Background(), sqlQuery, query.Limit, query.Offset)
 	defer rows.Close()
 
@@ -120,7 +120,7 @@ func getImageById(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, jsend.NewFail(err.(binding.BindingError).FieldErrors))
 		return
 	}
-	sqlQuery := "SELECT image_id,url FROM images WHERE image_id=$1"
+	sqlQuery := "SELECT id,source_url FROM images WHERE id=$1"
 	rows, err := pgPool.Query(context.Background(), sqlQuery, query.Id)
 	defer rows.Close()
 	if err != nil {
@@ -136,8 +136,8 @@ func getImageById(c *gin.Context) {
 	rows.Scan(&imageId, &url)
 	rows.Close()
 	c.JSON(http.StatusOK, jsend.New(gin.H{
-		"id":  imageId,
-		"url": url,
+		"id":         imageId,
+		"source_url": url,
 	}))
 }
 
@@ -164,7 +164,7 @@ func main() {
 	}
 
 	if !rows.Next() {
-		_, err := pgPool.Query(context.Background(), `INSERT INTO images (url)
+		_, err := pgPool.Query(context.Background(), `INSERT INTO images (source_url)
 		   VALUES
 		     ('/static/images/1.gif'),
 		     ('/static/images/2.jpg'),

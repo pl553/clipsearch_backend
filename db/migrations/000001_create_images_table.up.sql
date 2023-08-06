@@ -1,4 +1,4 @@
 CREATE TABLE IF NOT EXISTS images(
-   image_id serial PRIMARY KEY,
-   url TEXT NOT NULL
+   id serial PRIMARY KEY,
+   source_url TEXT
 );
