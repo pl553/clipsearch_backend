@@ -74,7 +74,6 @@ func getImages(c *gin.Context) {
 		return
 	}
 
-	imageUrls := make([]string, 0, 100)
 	images, err := imageRepository.GetImages(query.Offset, query.Limit)
 	if err != nil {
 		log.Print(err)
@@ -82,13 +81,9 @@ func getImages(c *gin.Context) {
 		return
 	}
 
-	for _, image := range images {
-		imageUrls = append(imageUrls, image.SourceUrl)
-	}
-
 	c.JSON(http.StatusOK, jsend.New(gin.H{
 		"image_count": count,
-		"image_urls":  imageUrls,
+		"images":      images,
 	}))
 }
 
@@ -120,10 +115,7 @@ func getImageById(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"id": "No image with such id exists"}))
 		return
 	}
-	c.JSON(http.StatusOK, jsend.New(gin.H{
-		"id":         image.Id,
-		"source_url": image.SourceUrl,
-	}))
+	c.JSON(http.StatusOK, jsend.New(image))
 }
 
 func main() {
