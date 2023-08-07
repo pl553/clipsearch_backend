@@ -10,13 +10,16 @@ import (
 
 	"clipsearch/binding"
 	"clipsearch/config"
+	"clipsearch/models"
+	"clipsearch/repositories"
 
 	"github.com/clevergo/jsend"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var pgPool *pgxpool.Pool
+var imageRepository *repositories.ImageRepository
+var internalErrorJson = jsend.NewError("Internal error", 500, nil)
 
 type PostImagesForm struct {
 	Url string `schema:"url,required" validate:"url"`
@@ -29,15 +32,10 @@ func postImages(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, jsend.NewFail(err.(binding.BindingError).FieldErrors))
 		return
 	}
-	rawUrl := c.Request.FormValue("url")
-	if rawUrl == "" {
-		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"url": "Image url must be non-empty"}))
-		return
-	}
-	invalidUrlMessage := jsend.NewFail(gin.H{"url": "Invalid url"})
-	url, err := url.ParseRequestURI(rawUrl)
+
+	url, err := url.ParseRequestURI(form.Url)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, invalidUrlMessage)
+		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"url": "Invalid url"}))
 		return
 	}
 	if len(url.Query()) != 0 {
@@ -46,16 +44,13 @@ func postImages(c *gin.Context) {
 	}
 
 	// TODO add more validation (check that its actually an image, check that the filesize isnt too large, ...)
-	query := `INSERT INTO images (source_url) VALUES ($1);`
-	rows, err := pgPool.Query(context.Background(), query, rawUrl)
-	rows.Close()
-	if err != nil {
-		log.Printf("POST /api/gallery/images: failed to execute query %v", query)
+
+	image := models.ImageModel{SourceUrl: form.Url}
+	if err := imageRepository.Create(&image); err != nil {
 		log.Print(err)
-		c.JSON(http.StatusInternalServerError, jsend.NewError("Internal error", 500, nil))
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
 		return
 	}
-
 	c.JSON(http.StatusOK, jsend.New(nil))
 }
 
@@ -72,30 +67,25 @@ func getImages(c *gin.Context) {
 		return
 	}
 
-	imageUrls := make([]string, 0, 100)
-
-	sqlCountQuery := `SELECT COUNT(*) FROM images`
-	row := pgPool.QueryRow(context.Background(), sqlCountQuery)
-	var count int
-	if err := row.Scan(&count); err != nil {
-		c.JSON(http.StatusInternalServerError, jsend.NewError("Failed to get images", 500, nil))
-		return
-	}
-
-	sqlQuery := `SELECT id, source_url FROM images ORDER BY id LIMIT $1 OFFSET $2;`
-	rows, err := pgPool.Query(context.Background(), sqlQuery, query.Limit, query.Offset)
-	defer rows.Close()
-
+	count, err := imageRepository.Count()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, jsend.NewError("Failed to get images", 500, nil))
+		log.Print(err)
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
 		return
 	}
-	for rows.Next() {
-		var url string
-		rows.Scan(nil, &url)
-		imageUrls = append(imageUrls, url)
+
+	imageUrls := make([]string, 0, 100)
+	images, err := imageRepository.GetImages(query.Offset, query.Limit)
+	if err != nil {
+		log.Print(err)
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
+		return
 	}
-	rows.Close()
+
+	for _, image := range images {
+		imageUrls = append(imageUrls, image.SourceUrl)
+	}
+
 	c.JSON(http.StatusOK, jsend.New(gin.H{
 		"image_count": count,
 		"image_urls":  imageUrls,
@@ -120,24 +110,19 @@ func getImageById(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, jsend.NewFail(err.(binding.BindingError).FieldErrors))
 		return
 	}
-	sqlQuery := "SELECT id,source_url FROM images WHERE id=$1"
-	rows, err := pgPool.Query(context.Background(), sqlQuery, query.Id)
-	defer rows.Close()
+	image, err := imageRepository.GetById(query.Id)
 	if err != nil {
+		log.Print(err)
 		c.JSON(http.StatusInternalServerError, jsend.NewError("Internal error", 500, nil))
 		return
 	}
-	if !rows.Next() {
+	if image == nil {
 		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"id": "No image with such id exists"}))
 		return
 	}
-	var imageId int
-	var url string
-	rows.Scan(&imageId, &url)
-	rows.Close()
 	c.JSON(http.StatusOK, jsend.New(gin.H{
-		"id":         imageId,
-		"source_url": url,
+		"id":         image.Id,
+		"source_url": image.SourceUrl,
 	}))
 }
 
@@ -150,27 +135,31 @@ func main() {
 	if dbConnString == "" {
 		log.Fatal(fmt.Sprintf("Please define the %v envar", config.DATABASE_CONNECTION_URL_ENVAR))
 	}
-	var err error
-	pgPool, err = pgxpool.New(context.Background(), dbConnString)
+	pgPool, err := pgxpool.New(context.Background(), dbConnString)
 	if err != nil {
 		log.Print("Failed to connect to db!")
 		log.Fatal(err)
 	}
 	defer pgPool.Close()
 
-	rows, err := pgPool.Query(context.Background(), "SELECT * FROM images;")
+	imageRepository = repositories.NewImageRepository(pgPool)
+
+	count, err := imageRepository.Count()
 	if err != nil {
-		log.Fatal("Failed to execute query")
+		log.Fatal(err)
 	}
 
-	if !rows.Next() {
-		_, err := pgPool.Query(context.Background(), `INSERT INTO images (source_url)
-		   VALUES
-		     ('/static/images/1.gif'),
-		     ('/static/images/2.jpg'),
-		     ('/static/images/3.jpg');`)
-		if err != nil {
-			log.Fatal("Failed to seed db")
+	if count == 0 {
+		seedImages := []models.ImageModel{
+			{SourceUrl: "/static/images/1.gif"},
+			{SourceUrl: "/static/images/2.jpg"},
+			{SourceUrl: "/static/images/3.jpg"},
+		}
+
+		for _, image := range seedImages {
+			if err := imageRepository.Create(&image); err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 	router := gin.New()
