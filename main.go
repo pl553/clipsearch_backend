@@ -22,7 +22,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var imageRepository *repositories.ImageRepository
+var imageRepository repositories.ImageRepository
 var internalErrorJson = jsend.NewError("Internal error", 500, nil)
 
 type PostImagesForm struct {
@@ -160,7 +160,7 @@ func main() {
 	}
 	defer pgPool.Close()
 
-	imageRepository = repositories.NewImageRepository(pgPool)
+	imageRepository = repositories.NewPgImageRepository(pgPool)
 
 	count, err := imageRepository.Count()
 	if err != nil {
