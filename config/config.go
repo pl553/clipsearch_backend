@@ -5,4 +5,6 @@ const DEFAULT_PORT string = "3000"
 
 const DATABASE_CONNECTION_URL_ENVAR string = "POSTGRESQL_URL"
 
-var ImageExtensions = []string{"png", "jpg", "jpeg", "bmp", "gif"}
+const MAX_IMAGE_FILE_SIZE int = 16 * 1024 * 1024
+const MAX_IMAGE_FILE_SIZE_MB int = MAX_IMAGE_FILE_SIZE / 1024 / 1024
+const FILE_DOWNLOAD_USERAGENT string = "Mozilla/5.0 (Windows NT 10.0; rv:108.0) Gecko/20100101 Firefox/108.0"

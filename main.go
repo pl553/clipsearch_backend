@@ -2,16 +2,20 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 
 	"clipsearch/binding"
 	"clipsearch/config"
 	"clipsearch/models"
 	"clipsearch/repositories"
+	"clipsearch/utils"
 
 	"github.com/clevergo/jsend"
 	"github.com/gin-gonic/gin"
@@ -33,19 +37,41 @@ func postImages(c *gin.Context) {
 		return
 	}
 
-	url, err := url.ParseRequestURI(form.Url)
+	imagePath, err := utils.DownloadFile(form.Url, config.MAX_IMAGE_FILE_SIZE)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"url": "Invalid url"}))
-		return
-	}
-	if len(url.Query()) != 0 {
-		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"url": "Url must not have any query parameters in it"}))
-		return
+		if errors.Is(err, utils.FileSizeExceededError{}) {
+			c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{
+				"url": fmt.Sprintf("Image at url is too large (>%d MB)", config.MAX_IMAGE_FILE_SIZE_MB),
+			}))
+			return
+		} else {
+			log.Print(err)
+			c.JSON(http.StatusInternalServerError, internalErrorJson)
+			return
+		}
 	}
 
-	// TODO add more validation (check that its actually an image, check that the filesize isnt too large, ...)
+	defer os.Remove(imagePath)
+	imageFile, err := os.Open(imagePath)
+	if err != nil {
+		log.Print(err)
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
+		return
+	}
+	hashSHA256 := sha256.New()
+	if _, err := io.Copy(hashSHA256, imageFile); err != nil {
+		log.Print(err)
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
+		return
+	}
+	hashBytes := hashSHA256.Sum(nil)
+	hashString := hex.EncodeToString(hashBytes)
 
-	image := models.ImageModel{SourceUrl: form.Url}
+	image := models.ImageModel{
+		SourceUrl: form.Url,
+		Sha256:    hashString,
+	}
+
 	if err := imageRepository.Create(&image); err != nil {
 		log.Print(err)
 		c.JSON(http.StatusInternalServerError, internalErrorJson)
@@ -82,8 +108,8 @@ func getImages(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, jsend.New(gin.H{
-		"image_count": count,
-		"images":      images,
+		"imageCount": count,
+		"images":     images,
 	}))
 }
 
@@ -108,7 +134,7 @@ func getImageById(c *gin.Context) {
 	image, err := imageRepository.GetById(query.Id)
 	if err != nil {
 		log.Print(err)
-		c.JSON(http.StatusInternalServerError, jsend.NewError("Internal error", 500, nil))
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
 		return
 	}
 	if image == nil {

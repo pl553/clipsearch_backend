@@ -1,4 +1,5 @@
-CREATE TABLE IF NOT EXISTS images(
-   id serial PRIMARY KEY,
-   source_url TEXT
+CREATE TABLE IF NOT EXISTS Images(
+   ImageID serial PRIMARY KEY,
+   SourceUrl TEXT,
+   Sha256 CHAR(64)
 );

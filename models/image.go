@@ -1,6 +1,7 @@
 package models
 
 type ImageModel struct {
-	Id        int    `db:"id" json:"id"`
-	SourceUrl string `db:"source_url" json:"source_url"`
+	ImageID   int    `json:"id"`
+	SourceUrl string `json:"sourceUrl"`
+	Sha256    string `json:"sha256"`
 }
