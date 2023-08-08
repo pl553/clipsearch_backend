@@ -2,19 +2,16 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 
 	"clipsearch/binding"
 	"clipsearch/config"
-	"clipsearch/models"
 	"clipsearch/repositories"
+	"clipsearch/services"
 	"clipsearch/utils"
 
 	"github.com/clevergo/jsend"
@@ -23,6 +20,7 @@ import (
 )
 
 var imageRepository repositories.ImageRepository
+var imageService *services.ImageService
 var internalErrorJson = jsend.NewError("Internal error", 500, nil)
 
 type PostImagesForm struct {
@@ -37,8 +35,7 @@ func postImages(c *gin.Context) {
 		return
 	}
 
-	imagePath, err := utils.DownloadFile(form.Url, config.MAX_IMAGE_FILE_SIZE)
-	if err != nil {
+	if err := imageService.AddImageByURL(form.Url); err != nil {
 		if errors.Is(err, utils.FileSizeExceededError{}) {
 			c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{
 				"url": fmt.Sprintf("Image at url is too large (>%d MB)", config.MAX_IMAGE_FILE_SIZE_MB),
@@ -51,32 +48,6 @@ func postImages(c *gin.Context) {
 		}
 	}
 
-	defer os.Remove(imagePath)
-	imageFile, err := os.Open(imagePath)
-	if err != nil {
-		log.Print(err)
-		c.JSON(http.StatusInternalServerError, internalErrorJson)
-		return
-	}
-	hashSHA256 := sha256.New()
-	if _, err := io.Copy(hashSHA256, imageFile); err != nil {
-		log.Print(err)
-		c.JSON(http.StatusInternalServerError, internalErrorJson)
-		return
-	}
-	hashBytes := hashSHA256.Sum(nil)
-	hashString := hex.EncodeToString(hashBytes)
-
-	image := models.ImageModel{
-		SourceUrl: form.Url,
-		Sha256:    hashString,
-	}
-
-	if err := imageRepository.Create(&image); err != nil {
-		log.Print(err)
-		c.JSON(http.StatusInternalServerError, internalErrorJson)
-		return
-	}
 	c.JSON(http.StatusOK, jsend.New(nil))
 }
 
@@ -93,14 +64,7 @@ func getImages(c *gin.Context) {
 		return
 	}
 
-	count, err := imageRepository.Count()
-	if err != nil {
-		log.Print(err)
-		c.JSON(http.StatusInternalServerError, internalErrorJson)
-		return
-	}
-
-	images, err := imageRepository.GetImages(query.Offset, query.Limit)
+	count, images, err := imageService.GetCountAndImages(query.Offset, query.Limit)
 	if err != nil {
 		log.Print(err)
 		c.JSON(http.StatusInternalServerError, internalErrorJson)
@@ -161,6 +125,7 @@ func main() {
 	defer pgPool.Close()
 
 	imageRepository = repositories.NewPgImageRepository(pgPool)
+	imageService = services.NewImageService(imageRepository)
 
 	count, err := imageRepository.Count()
 	if err != nil {
@@ -168,14 +133,14 @@ func main() {
 	}
 
 	if count == 0 {
-		seedImages := []models.ImageModel{
-			{SourceUrl: "/static/images/1.gif"},
-			{SourceUrl: "/static/images/2.jpg"},
-			{SourceUrl: "/static/images/3.jpg"},
+		seedImageURLs := []string{
+			"http://localhost/static/images/1.gif",
+			"http://localhost/static/images/2.jpg",
+			"http://localhost/static/images/3.jpg",
 		}
 
-		for _, image := range seedImages {
-			if err := imageRepository.Create(&image); err != nil {
+		for _, imageURL := range seedImageURLs {
+			if err := imageService.AddImageByURL(imageURL); err != nil {
 				log.Fatal(err)
 			}
 		}

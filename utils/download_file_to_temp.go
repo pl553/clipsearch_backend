@@ -24,7 +24,9 @@ func (err FileSizeExceededError) Is(target error) bool {
 
 var client = &http.Client{}
 
-func DownloadFile(rawUrl string, maxFileSize int) (string, error) {
+// Downloads a file to the temp folder ($TMPDIR or /tmp on unix)
+// Returns the downloaded file's path if successful
+func DownloadFileToTemp(rawUrl string, maxFileSize int) (string, error) {
 	url, err := url.Parse(rawUrl)
 	if err != nil {
 		return "", err
@@ -82,6 +84,7 @@ func DownloadFile(rawUrl string, maxFileSize int) (string, error) {
 
 	_, err = io.Copy(tmpFile, lr)
 	if err != nil {
+		os.Remove(tmpFile.Name())
 		return "", err
 	}
 
