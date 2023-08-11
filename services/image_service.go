@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"clipsearch/config"
 	"clipsearch/models"
 	"clipsearch/repositories"
@@ -8,7 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
-	"os"
 )
 
 type ImageService struct {
@@ -34,19 +34,15 @@ func (s *ImageService) GetCountAndImages(offset int, limit int) (int, []models.I
 }
 
 func (s *ImageService) AddImageByURL(url string) error {
-	imagePath, err := utils.DownloadFileToTemp(url, config.MAX_IMAGE_FILE_SIZE)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(imagePath)
+	var buf bytes.Buffer
 
-	imageFile, err := os.Open(imagePath)
+	err := utils.DownloadFile(&buf, url, config.MAX_IMAGE_FILE_SIZE)
 	if err != nil {
 		return err
 	}
 
 	hashSHA256 := sha256.New()
-	if _, err := io.Copy(hashSHA256, imageFile); err != nil {
+	if _, err := io.Copy(hashSHA256, &buf); err != nil {
 		return err
 	}
 	hashBytes := hashSHA256.Sum(nil)

@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 )
 
@@ -24,38 +23,38 @@ func (err FileSizeExceededError) Is(target error) bool {
 
 var client = &http.Client{}
 
-// Downloads a file to the temp folder ($TMPDIR or /tmp on unix)
-// Returns the downloaded file's path if successful
-func DownloadFileToTemp(rawUrl string, maxFileSize int) (string, error) {
+// Downloads a file, writing to w
+// It checks the content-length header first if it exists
+func DownloadFile(w io.Writer, rawUrl string, maxFileSize int) error {
 	url, err := url.Parse(rawUrl)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	req, err := http.NewRequest("HEAD", rawUrl, nil)
 	if err != nil {
-		return "", nil
+		return err
 	}
 	req.Header.Set("Referer", url.Hostname())
 	req.Header.Set("User-Agent", config.FILE_DOWNLOAD_USERAGENT)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Request wasn't completed successfully, status code %d", resp.StatusCode)
+		return fmt.Errorf("Request wasn't completed successfully, status code %d", resp.StatusCode)
 	}
 
 	size, err := strconv.Atoi(resp.Header.Get("Content-Length"))
 
 	if err == nil && size > maxFileSize {
-		return "", &FileSizeExceededError{}
+		return &FileSizeExceededError{}
 	}
 
 	req, err = http.NewRequest("GET", rawUrl, nil)
 	if err != nil {
-		return "", err
+		return err
 	}
 	req.Header.Set("Referer", url.Hostname())
 	req.Header.Set("User-Agent", config.FILE_DOWNLOAD_USERAGENT)
@@ -63,12 +62,12 @@ func DownloadFileToTemp(rawUrl string, maxFileSize int) (string, error) {
 	resp, err = client.Do(req)
 
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Request wasn't completed successfully, status code %d", resp.StatusCode)
+		return fmt.Errorf("Request wasn't completed successfully, status code %d", resp.StatusCode)
 	}
 
 	lr := &LimitedReader{
@@ -76,19 +75,12 @@ func DownloadFileToTemp(rawUrl string, maxFileSize int) (string, error) {
 		MaxBytesLeftToRead: maxFileSize,
 	}
 
-	tmpFile, err := os.CreateTemp("", "clipsearch_image_")
+	_, err = io.Copy(w, lr)
 	if err != nil {
-		return "", err
-	}
-	defer tmpFile.Close()
-
-	_, err = io.Copy(tmpFile, lr)
-	if err != nil {
-		os.Remove(tmpFile.Name())
-		return "", err
+		return err
 	}
 
-	return tmpFile.Name(), nil
+	return nil
 }
 
 type LimitedReader struct {

@@ -3,6 +3,11 @@
 go mod tidy
 go build
 ```
+# Testing
+```bash
+go test ./...
+```
+
 # Database
 ## Initial setup
 ```bash
