@@ -12,20 +12,20 @@ import (
 )
 
 type ImageService struct {
-	imageRepo repositories.ImageRepository
+	ImageRepo repositories.ImageRepository
 }
 
-func NewImageService(imageRepo repositories.ImageRepository) *ImageService {
-	return &ImageService{imageRepo: imageRepo}
+func NewImageService(ImageRepo repositories.ImageRepository) *ImageService {
+	return &ImageService{ImageRepo: ImageRepo}
 }
 
 func (s *ImageService) GetCountAndImages(offset int, limit int) (int, []models.ImageModel, error) {
-	count, err := s.imageRepo.Count()
+	count, err := s.ImageRepo.Count()
 	if err != nil {
 		return 0, nil, err
 	}
 
-	images, err := s.imageRepo.GetImages(offset, limit)
+	images, err := s.ImageRepo.GetImages(offset, limit)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -53,7 +53,7 @@ func (s *ImageService) AddImageByURL(url string) error {
 		Sha256:    hashString,
 	}
 
-	if err := s.imageRepo.Create(&image); err != nil {
+	if err := s.ImageRepo.Create(&image); err != nil {
 		return err
 	}
 

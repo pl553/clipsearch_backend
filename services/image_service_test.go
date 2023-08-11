@@ -13,16 +13,17 @@ func TestImageService(t *testing.T) {
 			Path   string
 			Sha256 string
 		}{
-			Path:   "test/test_image.jpg",
+			Path:   "../test/test_image.jpg",
 			Sha256: "671797905015849a2e772d7e152ad3289e7d71703b49c8fb607d00265769c1fb",
 		}
-
-		mockRepo := repositories.NewMockImageRepository()
-		imageService := NewImageService(mockRepo)
 
 		server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			http.ServeFile(rw, req, testImage.Path)
 		}))
+
+		mockRepo := repositories.NewMockImageRepository()
+		imageService := NewImageService(mockRepo)
+
 		defer server.Close()
 
 		err := imageService.AddImageByURL(server.URL)

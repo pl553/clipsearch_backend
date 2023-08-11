@@ -21,7 +21,7 @@ func (repo *MockImageRepository) Create(image *models.ImageModel) error {
 	newImage := *image
 	newImage.ImageID = repo.ct + 1
 	repo.ct++
-	repo.images = append(repo.images, *image)
+	repo.images = append(repo.images, newImage)
 	return nil
 }
 
