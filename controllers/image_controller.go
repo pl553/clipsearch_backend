@@ -3,6 +3,7 @@ package controllers
 import (
 	"clipsearch/binding"
 	"clipsearch/config"
+	"clipsearch/models"
 	"clipsearch/services"
 	"clipsearch/utils"
 	"errors"
@@ -73,7 +74,7 @@ func (controller *ImageController) GetImages(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, jsend.New(gin.H{
-		"imageCount": count,
+		"totalCount": count,
 		"images":     images,
 	}))
 }
@@ -103,8 +104,59 @@ func (controller *ImageController) GetImageById(c *gin.Context) {
 		return
 	}
 	if image == nil {
-		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"id": "No image with such id exists"}))
+		c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{"id": "=No image with such id exists"}))
 		return
 	}
 	c.JSON(http.StatusOK, jsend.New(image))
+}
+
+type SearchQuery struct {
+	Query  string `schema:"q"`
+	Offset int    `schema:"offset" validate:"min=0"`
+	Limit  int    `schema:"limit" validate:"min=0"`
+}
+
+func (controller *ImageController) GetSearchImages(c *gin.Context) {
+	var query SearchQuery
+	if err := binding.ShouldBind(&query, c.Request.URL.Query()); err != nil {
+		c.JSON(http.StatusBadRequest, jsend.NewFail(err.(binding.BindingError).FieldErrors))
+		return
+	}
+
+	conn, err := services.ConnectToImageSearchDaemon("tcp://localhost:" + config.SEARCH_DAEMON_PORT)
+	if err != nil {
+		log.Print(err)
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
+		return
+	}
+
+	var daemonResults []services.ImageSearchResult
+	var count int
+
+	if len(query.Query) == 0 {
+		daemonResults = nil
+		count = 0
+	} else {
+		count, daemonResults, err = conn.SearchRequest(query.Query)
+		if err != nil {
+			log.Print(err)
+			c.JSON(http.StatusInternalServerError, internalErrorJson)
+			return
+		}
+	}
+
+	results := make([]*models.ImageModel, 0, query.Limit)
+	for i := query.Offset; i < query.Offset+query.Limit && i < len(daemonResults); i++ {
+		image, err := controller.imageService.ImageRepo.GetById(daemonResults[i].ImageID)
+		if err != nil {
+			log.Print(err)
+			c.JSON(http.StatusInternalServerError, internalErrorJson)
+			return
+		}
+		results = append(results, image)
+	}
+	c.JSON(http.StatusOK, jsend.New(gin.H{
+		"totalCount": count,
+		"images":     results,
+	}))
 }

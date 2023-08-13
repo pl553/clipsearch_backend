@@ -17,12 +17,12 @@ func (repo *MockImageRepository) Count() (int, error) {
 	return len(repo.images), nil
 }
 
-func (repo *MockImageRepository) Create(image *models.ImageModel) error {
+func (repo *MockImageRepository) Create(image *models.ImageModel) (int, error) {
 	newImage := *image
 	newImage.ImageID = repo.ct + 1
 	repo.ct++
 	repo.images = append(repo.images, newImage)
-	return nil
+	return newImage.ImageID, nil
 }
 
 func (repo *MockImageRepository) GetImages(offset int, limit int) ([]models.ImageModel, error) {

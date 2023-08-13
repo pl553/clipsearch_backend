@@ -1,3 +1,6 @@
+clip_daemons/image_features.pt
+clip_daemons/__pycache__/
+clip_daemons/models/
 clipsearch
 go.sum
 

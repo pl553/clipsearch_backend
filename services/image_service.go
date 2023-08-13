@@ -12,11 +12,15 @@ import (
 )
 
 type ImageService struct {
-	ImageRepo repositories.ImageRepository
+	ImageRepo                   repositories.ImageRepository
+	imageFeatureExtractionQueue chan models.ImageModel
 }
 
 func NewImageService(ImageRepo repositories.ImageRepository) *ImageService {
-	return &ImageService{ImageRepo: ImageRepo}
+	return &ImageService{
+		ImageRepo:                   ImageRepo,
+		imageFeatureExtractionQueue: make(chan models.ImageModel, 1024),
+	}
 }
 
 func (s *ImageService) GetCountAndImages(offset int, limit int) (int, []models.ImageModel, error) {
@@ -42,7 +46,7 @@ func (s *ImageService) AddImageByURL(url string) error {
 	}
 
 	hashSHA256 := sha256.New()
-	if _, err := io.Copy(hashSHA256, &buf); err != nil {
+	if _, err := io.Copy(hashSHA256, bytes.NewReader(buf.Bytes())); err != nil {
 		return err
 	}
 	hashBytes := hashSHA256.Sum(nil)
@@ -53,7 +57,18 @@ func (s *ImageService) AddImageByURL(url string) error {
 		Sha256:    hashString,
 	}
 
-	if err := s.ImageRepo.Create(&image); err != nil {
+	id, err := s.ImageRepo.Create(&image)
+	if err != nil {
+		return err
+	}
+	image.ImageID = id
+
+	conn, err := ConnectToImageFeatureDaemon("tcp://localhost:" + config.FEATURE_EXTRACT_DAEMON_PORT)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	if err := conn.SendImageForFeatureExtraction(id, buf.Bytes()); err != nil {
 		return err
 	}
 

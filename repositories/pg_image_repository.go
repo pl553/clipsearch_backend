@@ -27,14 +27,22 @@ func (repo *PgImageRepository) Count() (int, error) {
 	return count, nil
 }
 
-func (repo *PgImageRepository) Create(image *models.ImageModel) error {
-	query := `INSERT INTO Images (SourceUrl,Sha256) VALUES ($1,$2);`
+func (repo *PgImageRepository) Create(image *models.ImageModel) (int, error) {
+	query := `INSERT INTO Images (SourceUrl,Sha256) VALUES ($1,$2) RETURNING ImageID;`
 	rows, err := repo.pool.Query(context.Background(), query, image.SourceUrl, image.Sha256)
-	rows.Close()
 	if err != nil {
-		return fmt.Errorf("Failed to create image: %w", err)
+		return 0, fmt.Errorf("Failed to create image: %w", err)
 	}
-	return nil
+	defer rows.Close()
+	if !rows.Next() {
+		return 0, fmt.Errorf("Failed to get id of newly created image")
+	}
+	var id int
+	err = rows.Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("Failed to get id of newly created image")
+	}
+	return id, nil
 }
 
 func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.ImageModel, error) {

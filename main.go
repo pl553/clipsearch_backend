@@ -42,6 +42,7 @@ func setupRouter(imageController *controllers.ImageController) *gin.Engine {
 	router.GET("/api/images", imageController.GetImages)
 	router.POST("/api/images", imageController.PostImages)
 	router.GET("/api/images/:id", imageController.GetImageById)
+	router.GET("/api/images/search", imageController.GetSearchImages)
 	return router
 }
 
@@ -65,7 +66,7 @@ func main() {
 	imageService := services.NewImageService(imageRepository)
 	imageController := controllers.NewImageController(imageService)
 
-	seedRepository(imageRepository, imageService)
+	//seedRepository(imageRepository, imageService)
 
 	router := setupRouter(imageController)
 	router.Run(":" + port)
