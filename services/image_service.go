@@ -37,7 +37,7 @@ func (s *ImageService) GetCountAndImages(offset int, limit int) (int, []models.I
 	return count, images, nil
 }
 
-func (s *ImageService) AddImageByURL(url string) error {
+func (s *ImageService) AddImageByURL(url string, thumbnailUrl string) error {
 	var buf bytes.Buffer
 
 	err := utils.DownloadFile(&buf, url, config.MAX_IMAGE_FILE_SIZE)
@@ -53,8 +53,9 @@ func (s *ImageService) AddImageByURL(url string) error {
 	hashString := hex.EncodeToString(hashBytes)
 
 	image := models.ImageModel{
-		SourceUrl: url,
-		Sha256:    hashString,
+		SourceUrl:    url,
+		ThumbnailUrl: thumbnailUrl,
+		Sha256:       hashString,
 	}
 
 	id, err := s.ImageRepo.Create(&image)

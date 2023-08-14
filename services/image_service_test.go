@@ -26,7 +26,7 @@ func TestImageService(t *testing.T) {
 
 		defer server.Close()
 
-		err := imageService.AddImageByURL(server.URL)
+		err := imageService.AddImageByURL(server.URL, "")
 		if err != nil {
 			t.Fatalf(err.Error())
 		}

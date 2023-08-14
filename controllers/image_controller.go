@@ -26,7 +26,8 @@ func NewImageController(imageService *services.ImageService) *ImageController {
 }
 
 type PostImagesForm struct {
-	Url string `schema:"url,required" validate:"url"`
+	Url          string `schema:"url,required" validate:"url"`
+	ThumbnailUrl string `schema:"thumbnailUrl" validate:"omitempty,url"`
 }
 
 func (controller *ImageController) PostImages(c *gin.Context) {
@@ -37,7 +38,11 @@ func (controller *ImageController) PostImages(c *gin.Context) {
 		return
 	}
 
-	if err := controller.imageService.AddImageByURL(form.Url); err != nil {
+	if form.ThumbnailUrl == "" {
+		form.ThumbnailUrl = form.Url
+	}
+
+	if err := controller.imageService.AddImageByURL(form.Url, form.ThumbnailUrl); err != nil {
 		if errors.Is(err, utils.FileSizeExceededError{}) {
 			c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{
 				"url": fmt.Sprintf("Image at url is too large (>%d MB)", config.MAX_IMAGE_FILE_SIZE_MB),

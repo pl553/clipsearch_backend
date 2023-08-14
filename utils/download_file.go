@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 )
 
@@ -26,16 +25,16 @@ var client = &http.Client{}
 // Downloads a file, writing to w
 // It checks the content-length header first if it exists
 func DownloadFile(w io.Writer, rawUrl string, maxFileSize int) error {
-	url, err := url.Parse(rawUrl)
+	/*url, err := url.Parse(rawUrl)
 	if err != nil {
 		return err
-	}
+	}*/
 
 	req, err := http.NewRequest("HEAD", rawUrl, nil)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Referer", url.Hostname())
+	//req.Header.Set("Referer", url.Hostname())
 	req.Header.Set("User-Agent", config.FILE_DOWNLOAD_USERAGENT)
 
 	resp, err := client.Do(req)
@@ -56,7 +55,7 @@ func DownloadFile(w io.Writer, rawUrl string, maxFileSize int) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Referer", url.Hostname())
+	//req.Header.Set("Referer", url.Hostname())
 	req.Header.Set("User-Agent", config.FILE_DOWNLOAD_USERAGENT)
 
 	resp, err = client.Do(req)

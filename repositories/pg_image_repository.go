@@ -28,8 +28,8 @@ func (repo *PgImageRepository) Count() (int, error) {
 }
 
 func (repo *PgImageRepository) Create(image *models.ImageModel) (int, error) {
-	query := `INSERT INTO Images (SourceUrl,Sha256) VALUES ($1,$2) RETURNING ImageID;`
-	rows, err := repo.pool.Query(context.Background(), query, image.SourceUrl, image.Sha256)
+	query := `INSERT INTO Images (SourceUrl,ThumbnailUrl,Sha256) VALUES ($1,$2,$3) RETURNING ImageID;`
+	rows, err := repo.pool.Query(context.Background(), query, image.SourceUrl, image.ThumbnailUrl, image.Sha256)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to create image: %w", err)
 	}
@@ -46,7 +46,7 @@ func (repo *PgImageRepository) Create(image *models.ImageModel) (int, error) {
 }
 
 func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.ImageModel, error) {
-	query := `SELECT ImageID, SourceUrl FROM Images ORDER BY ImageID LIMIT $1 OFFSET $2;`
+	query := `SELECT ImageID, SourceUrl, ThumbnailUrl, Sha256 FROM Images ORDER BY ImageID LIMIT $1 OFFSET $2;`
 	rows, err := repo.pool.Query(context.Background(), query, limit, offset)
 	defer rows.Close()
 
@@ -58,7 +58,7 @@ func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.ImageM
 
 	for rows.Next() {
 		var image models.ImageModel
-		if err := rows.Scan(&image.ImageID, &image.SourceUrl); err != nil {
+		if err := rows.Scan(&image.ImageID, &image.SourceUrl, &image.ThumbnailUrl, &image.Sha256); err != nil {
 			return nil, fmt.Errorf("Failed to get images: %w", err)
 		}
 		images = append(images, image)
@@ -68,7 +68,7 @@ func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.ImageM
 }
 
 func (repo *PgImageRepository) GetById(id int) (*models.ImageModel, error) {
-	query := "SELECT ImageID,SourceUrl,Sha256 FROM Images WHERE ImageID=$1"
+	query := "SELECT ImageID,SourceUrl,ThumbnailUrl,Sha256 FROM Images WHERE ImageID=$1"
 	rows, err := repo.pool.Query(context.Background(), query, id)
 	defer rows.Close()
 	if err != nil {
@@ -78,7 +78,7 @@ func (repo *PgImageRepository) GetById(id int) (*models.ImageModel, error) {
 		return nil, nil
 	}
 	var image models.ImageModel
-	if err := rows.Scan(&image.ImageID, &image.SourceUrl, &image.Sha256); err != nil {
+	if err := rows.Scan(&image.ImageID, &image.SourceUrl, &image.ThumbnailUrl, &image.Sha256); err != nil {
 		return nil, fmt.Errorf("Failed to get image by id: %w", err)
 	}
 	return &image, nil

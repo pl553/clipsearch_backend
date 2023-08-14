@@ -29,7 +29,7 @@ func seedRepository(imageRepository repositories.ImageRepository, imageService *
 		}
 
 		for _, imageURL := range seedImageURLs {
-			if err := imageService.AddImageByURL(imageURL); err != nil {
+			if err := imageService.AddImageByURL(imageURL, ""); err != nil {
 				log.Fatal(err)
 			}
 		}

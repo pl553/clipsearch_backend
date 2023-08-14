@@ -97,9 +97,9 @@ func TestImageController(t *testing.T) {
 			mockRepo := repositories.NewMockImageRepository()
 			imageService := services.NewImageService(mockRepo)
 
-			imageService.AddImageByURL(testImageServer.URL)
-			imageService.AddImageByURL(testImageServer.URL)
-			imageService.AddImageByURL(testImageServer.URL)
+			imageService.AddImageByURL(testImageServer.URL, "")
+			imageService.AddImageByURL(testImageServer.URL, "")
+			imageService.AddImageByURL(testImageServer.URL, "")
 
 			controller := NewImageController(imageService)
 
@@ -151,7 +151,7 @@ func TestImageController(t *testing.T) {
 			mockRepo := repositories.NewMockImageRepository()
 			imageService := services.NewImageService(mockRepo)
 
-			imageService.AddImageByURL(testImageServer.URL)
+			imageService.AddImageByURL(testImageServer.URL, "")
 
 			controller := NewImageController(imageService)
 
