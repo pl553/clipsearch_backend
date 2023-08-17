@@ -10,7 +10,7 @@ import jsend
 ZMQ_PORT = "5553"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model, preprocess = clip.load("ViT-L/14", device=device, download_root='models/')
+model, preprocess = clip.load("ViT-L/14@336px", device=device, download_root='models/')
 
 THRESHOLD = 17
 
@@ -31,18 +31,11 @@ while True:
         image_features = torch.load('image_features.pt')
 
         with torch.no_grad():
-            zeroshot_weights = []
-            texts = [prompt]
-            texts = clip.tokenize(texts).cpu()
-            class_embeddings = model.encode_text(texts) #embed with text encoder
-            class_embeddings /= class_embeddings.norm(dim=-1, keepdim=True)
-            class_embedding = class_embeddings.mean(dim=0)
-            class_embedding /= class_embedding.norm()
-            zeroshot_weights.append(class_embedding)
-            zeroshot_weights = torch.stack(zeroshot_weights, dim=1).cpu()
+            text_features = model.encode_text(clip.tokenize(prompt))
+            text_features /= text_features.norm(dim=-1, keepdim=True)
 
         for image_id in image_features:
-            logits = 100. * image_features[image_id].numpy() @ zeroshot_weights.numpy()
+            logits = 100. * image_features[image_id] @ text_features.T
             resp_data.append({
                 "id": int(image_id),
                 "score": float(logits[0][0])

@@ -12,7 +12,7 @@ import jsend
 ZMQ_PORT = "5554"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model, preprocess = clip.load("ViT-L/14", device=device, download_root='models/')
+model, preprocess = clip.load("ViT-L/14@336px", device=device, download_root='models/')
 
 THRESHOLD = 17
 
@@ -40,8 +40,6 @@ while True:
             # predict
             image_features[image_id] = model.encode_image(image)
             image_features[image_id] /= image_features[image_id].norm(dim=-1, keepdim=True)
-        
-        image_features[image_id] = image_features[image_id].cpu()
 
         torch.save(image_features, "image_features.pt")
     except Exception as e:
