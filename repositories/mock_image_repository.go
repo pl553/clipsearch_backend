@@ -17,6 +17,16 @@ func (repo *MockImageRepository) Count() (int, error) {
 	return len(repo.images), nil
 }
 
+func (repo *MockImageRepository) CountWithSha256(sha256 string) (int, error) {
+	counter := 0
+	for _, image := range repo.images {
+		if image.Sha256 == sha256 {
+			counter++
+		}
+	}
+	return counter, nil
+}
+
 func (repo *MockImageRepository) Create(image *models.ImageModel) (int, error) {
 	newImage := *image
 	newImage.ImageID = repo.ct + 1

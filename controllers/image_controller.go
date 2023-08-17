@@ -3,7 +3,6 @@ package controllers
 import (
 	"clipsearch/binding"
 	"clipsearch/config"
-	"clipsearch/models"
 	"clipsearch/services"
 	"clipsearch/utils"
 	"errors"
@@ -47,6 +46,12 @@ func (controller *ImageController) PostImages(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{
 				"url": fmt.Sprintf("Image at url is too large (>%d MB)", config.MAX_IMAGE_FILE_SIZE_MB),
 			}))
+			return
+		} else if errors.Is(err, services.ImageExistsError) {
+			c.JSON(http.StatusBadRequest, jsend.NewFail(gin.H{
+				"url": fmt.Sprintf("Image already exists"),
+			}))
+			log.Print("attempted to add already existing image")
 			return
 		} else {
 			log.Print(err)
@@ -150,7 +155,13 @@ func (controller *ImageController) GetSearchImages(c *gin.Context) {
 		}
 	}
 
-	results := make([]*models.ImageModel, 0, query.Limit)
+	type ImageSearchResult struct {
+		ImageID      int     `json:"id"`
+		ThumbnailUrl string  `json:"thumbnailUrl"`
+		Score        float32 `json:"score"`
+	}
+
+	results := make([]ImageSearchResult, 0, query.Limit)
 	for i := query.Offset; i < query.Offset+query.Limit && i < len(daemonResults); i++ {
 		image, err := controller.imageService.ImageRepo.GetById(daemonResults[i].ImageID)
 		if err != nil {
@@ -158,7 +169,11 @@ func (controller *ImageController) GetSearchImages(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, internalErrorJson)
 			return
 		}
-		results = append(results, image)
+		results = append(results, ImageSearchResult{
+			ImageID:      image.ImageID,
+			ThumbnailUrl: image.ThumbnailUrl,
+			Score:        daemonResults[i].Score,
+		})
 	}
 	c.JSON(http.StatusOK, jsend.New(gin.H{
 		"totalCount": count,

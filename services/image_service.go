@@ -8,6 +8,7 @@ import (
 	"clipsearch/utils"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 )
 
@@ -37,6 +38,8 @@ func (s *ImageService) GetCountAndImages(offset int, limit int) (int, []models.I
 	return count, images, nil
 }
 
+var ImageExistsError = fmt.Errorf("This image already exists (hash match)")
+
 func (s *ImageService) AddImageByURL(url string, thumbnailUrl string) error {
 	var buf bytes.Buffer
 
@@ -56,6 +59,14 @@ func (s *ImageService) AddImageByURL(url string, thumbnailUrl string) error {
 		SourceUrl:    url,
 		ThumbnailUrl: thumbnailUrl,
 		Sha256:       hashString,
+	}
+
+	count, err := s.ImageRepo.CountWithSha256(image.Sha256)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return ImageExistsError
 	}
 
 	id, err := s.ImageRepo.Create(&image)

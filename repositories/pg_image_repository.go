@@ -27,6 +27,16 @@ func (repo *PgImageRepository) Count() (int, error) {
 	return count, nil
 }
 
+func (repo *PgImageRepository) CountWithSha256(sha256 string) (int, error) {
+	query := `SELECT COUNT(*) FROM Images WHERE Sha256=$1`
+	row := repo.pool.QueryRow(context.Background(), query, sha256)
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("Failed to count images: %w", err)
+	}
+	return count, nil
+}
+
 func (repo *PgImageRepository) Create(image *models.ImageModel) (int, error) {
 	query := `INSERT INTO Images (SourceUrl,ThumbnailUrl,Sha256) VALUES ($1,$2,$3) RETURNING ImageID;`
 	rows, err := repo.pool.Query(context.Background(), query, image.SourceUrl, image.ThumbnailUrl, image.Sha256)
