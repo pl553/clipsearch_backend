@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"clipsearch/models"
@@ -45,12 +46,12 @@ func (repo *PgImageRepository) Create(image *models.ImageModel) (int, error) {
 	}
 	defer rows.Close()
 	if !rows.Next() {
-		return 0, fmt.Errorf("Failed to get id of newly created image")
+		return 0, errors.New("Failed to get id of newly created image")
 	}
 	var id int
 	err = rows.Scan(&id)
 	if err != nil {
-		return 0, fmt.Errorf("Failed to get id of newly created image")
+		return 0, errors.New("Failed to get id of newly created image")
 	}
 	return id, nil
 }
@@ -85,11 +86,24 @@ func (repo *PgImageRepository) GetById(id int) (*models.ImageModel, error) {
 		return nil, fmt.Errorf("Failed to get image by id: %w", err)
 	}
 	if !rows.Next() {
-		return nil, nil
+		return nil, ImageNotFoundError
 	}
 	var image models.ImageModel
 	if err := rows.Scan(&image.ImageID, &image.SourceUrl, &image.ThumbnailUrl, &image.Sha256); err != nil {
 		return nil, fmt.Errorf("Failed to get image by id: %w", err)
 	}
 	return &image, nil
+}
+
+func (repo *PgImageRepository) DeleteById(id int) error {
+	query := "DELETE FROM Images WHERE ImageID=$1"
+	commandTag, err := repo.pool.Exec(context.Background(), query, id)
+	if err != nil {
+		return err
+	}
+	if commandTag.RowsAffected() == 0 {
+		return ImageNotFoundError
+	} else {
+		return nil
+	}
 }

@@ -2,23 +2,14 @@ package utils
 
 import (
 	"clipsearch/config"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 )
 
-type FileSizeExceededError struct {
-}
-
-func (err FileSizeExceededError) Error() string {
-	return fmt.Sprintf("File size exceeded")
-}
-
-func (err FileSizeExceededError) Is(target error) bool {
-	_, ok := target.(FileSizeExceededError)
-	return ok
-}
+var FileSizeExceededError = errors.New("Max file size was exceeded")
 
 var client = &http.Client{}
 
@@ -48,7 +39,7 @@ func DownloadFile(w io.Writer, rawUrl string, maxFileSize int) error {
 	size, err := strconv.Atoi(resp.Header.Get("Content-Length"))
 
 	if err == nil && size > maxFileSize {
-		return &FileSizeExceededError{}
+		return FileSizeExceededError
 	}
 
 	req, err = http.NewRequest("GET", rawUrl, nil)
@@ -97,7 +88,7 @@ func (lr *LimitedReader) Read(p []byte) (int, error) {
 	}
 	lr.MaxBytesLeftToRead -= n
 	if lr.MaxBytesLeftToRead < 0 {
-		return n, FileSizeExceededError{}
+		return n, FileSizeExceededError
 	}
 	return n, nil
 }

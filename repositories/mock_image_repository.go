@@ -45,5 +45,16 @@ func (repo *MockImageRepository) GetById(id int) (*models.ImageModel, error) {
 			return &image, nil
 		}
 	}
-	return nil, nil
+	return nil, ImageNotFoundError
+}
+
+func (repo *MockImageRepository) DeleteById(id int) error {
+	for i, image := range repo.images {
+		if image.ImageID == id {
+			repo.images[i] = repo.images[len(repo.images)-1]
+			repo.images = repo.images[:len(repo.images)-1]
+			return nil
+		}
+	}
+	return ImageNotFoundError
 }

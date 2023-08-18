@@ -42,6 +42,7 @@ func setupRouter(imageController *controllers.ImageController) *gin.Engine {
 	router.GET("/api/images", imageController.GetImages)
 	router.POST("/api/images", imageController.PostImages)
 	router.GET("/api/images/:id", imageController.GetImageById)
+	router.DELETE("/api/images/:id", imageController.DeleteImageById)
 	router.GET("/api/images/search", imageController.GetSearchImages)
 	return router
 }

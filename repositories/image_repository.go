@@ -1,6 +1,9 @@
 package repositories
 
-import "clipsearch/models"
+import (
+	"clipsearch/models"
+	"errors"
+)
 
 type ImageRepository interface {
 	Count() (int, error)
@@ -9,4 +12,7 @@ type ImageRepository interface {
 	Create(image *models.ImageModel) (int, error)
 	GetImages(offset int, limit int) ([]models.ImageModel, error)
 	GetById(id int) (*models.ImageModel, error)
+	DeleteById(id int) error
 }
+
+var ImageNotFoundError = errors.New("Image with such id was not found")
