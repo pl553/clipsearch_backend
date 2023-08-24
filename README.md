@@ -1,3 +1,6 @@
+# Dependencies
+https://github.com/pgvector/pgvector  
+https://github.com/openai/CLIP
 # Building
 ```bash
 go mod tidy
@@ -12,16 +15,17 @@ go test ./...
 ## Initial setup
 ```bash
 sudo -i -u postgres  
-psql  
+createdb clipsearch  
+psql clipsearch
 ```
 
 ```
-postgres=# create user clipsearch with password 'weakpassword'
+clipsearch=# CREATE EXTENSION vector;
+clipsearch=# CREATE USER clipsearch WITH PASSWORD 'weakpassword'
 \q
 ```
 
-```bash
-createdb clipsearch  
+```bash 
 exit
 export POSTGRESQL_URL=postgres://clipsearch:weakpassword@localhost:5432/clipsearch?sslmode=disable
 ```

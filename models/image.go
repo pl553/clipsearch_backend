@@ -5,4 +5,5 @@ type ImageModel struct {
 	SourceUrl    string `json:"sourceUrl"`
 	ThumbnailUrl string `json:"thumbnailUrl"`
 	Sha256       string `json:"sha256"`
+	Embedding    []float32
 }

@@ -1,0 +1,1 @@
+ALTER TABLE Images DROP COLUMN IF EXISTS Embedding;

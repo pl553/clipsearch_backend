@@ -55,13 +55,7 @@ func (s *ImageService) AddImageByURL(url string, thumbnailUrl string) error {
 	hashBytes := hashSHA256.Sum(nil)
 	hashString := hex.EncodeToString(hashBytes)
 
-	image := models.ImageModel{
-		SourceUrl:    url,
-		ThumbnailUrl: thumbnailUrl,
-		Sha256:       hashString,
-	}
-
-	count, err := s.ImageRepo.CountWithSha256(image.Sha256)
+	count, err := s.ImageRepo.CountWithSha256(hashString)
 	if err != nil {
 		return err
 	}
@@ -69,18 +63,26 @@ func (s *ImageService) AddImageByURL(url string, thumbnailUrl string) error {
 		return ImageExistsError
 	}
 
-	id, err := s.ImageRepo.Create(&image)
-	if err != nil {
-		return err
-	}
-	image.ImageID = id
-
-	conn, err := ConnectToImageFeatureDaemon("tcp://localhost:" + config.FEATURE_EXTRACT_DAEMON_PORT)
+	conn, err := ConnectToZmqImageEmbeddingDaemon("tcp://localhost:" + config.ZMQ_IMAGE_EMBEDDING_DAEMON_PORT)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
-	if err := conn.SendImageForFeatureExtraction(id, buf.Bytes()); err != nil {
+
+	embedding, err := conn.EncodeImage(buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	image := models.ImageModel{
+		SourceUrl:    url,
+		ThumbnailUrl: thumbnailUrl,
+		Sha256:       hashString,
+		Embedding:    embedding,
+	}
+
+	_, err = s.ImageRepo.Create(&image)
+	if err != nil {
 		return err
 	}
 

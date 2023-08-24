@@ -11,6 +11,7 @@ type ImageRepository interface {
 	// the int is the id of the newly created image
 	Create(image *models.ImageModel) (int, error)
 	GetImages(offset int, limit int) ([]models.ImageModel, error)
+	GetSimilarImages(embedding []float32, offset int, limit int) ([]models.ImageModel, error)
 	GetById(id int) (*models.ImageModel, error)
 	DeleteById(id int) error
 }

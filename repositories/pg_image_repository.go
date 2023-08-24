@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"clipsearch/models"
 
@@ -38,15 +39,37 @@ func (repo *PgImageRepository) CountWithSha256(sha256 string) (int, error) {
 	return count, nil
 }
 
+func embeddingToString(embedding []float32) string {
+	builder := strings.Builder{}
+	builder.WriteRune('[')
+	for i, val := range embedding {
+		builder.WriteString(fmt.Sprintf("%f", val))
+		if i != len(embedding)-1 {
+			builder.WriteRune(',')
+		}
+	}
+	builder.WriteRune(']')
+	return builder.String()
+}
+
 func (repo *PgImageRepository) Create(image *models.ImageModel) (int, error) {
-	query := `INSERT INTO Images (SourceUrl,ThumbnailUrl,Sha256) VALUES ($1,$2,$3) RETURNING ImageID;`
-	rows, err := repo.pool.Query(context.Background(), query, image.SourceUrl, image.ThumbnailUrl, image.Sha256)
+	query := `INSERT INTO Images (SourceUrl,ThumbnailUrl,Sha256,Embedding) VALUES ($1,$2,$3,$4) RETURNING ImageID;`
+	rows, err := repo.pool.Query(
+		context.Background(),
+		query, image.SourceUrl,
+		image.ThumbnailUrl,
+		image.Sha256,
+		embeddingToString(image.Embedding))
+
 	if err != nil {
 		return 0, fmt.Errorf("Failed to create image: %w", err)
 	}
 	defer rows.Close()
 	if !rows.Next() {
 		return 0, errors.New("Failed to get id of newly created image")
+	}
+	if rows.Err() != nil {
+		return 0, rows.Err()
 	}
 	var id int
 	err = rows.Scan(&id)
@@ -73,6 +96,32 @@ func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.ImageM
 			return nil, fmt.Errorf("Failed to get images: %w", err)
 		}
 		images = append(images, image)
+	}
+
+	return images, nil
+}
+
+func (repo *PgImageRepository) GetSimilarImages(embedding []float32, offset int, limit int) ([]models.ImageModel, error) {
+	query := `SELECT ImageID, ThumbnailUrl FROM Images ORDER BY Embedding <#> $1 LIMIT $2 OFFSET $3;`
+	rows, err := repo.pool.Query(context.Background(), query, embeddingToString(embedding), limit, offset)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get images: %w", err)
+	}
+
+	images := make([]models.ImageModel, 0, 32)
+
+	for rows.Next() {
+		var image models.ImageModel
+		if err := rows.Scan(&image.ImageID, &image.ThumbnailUrl); err != nil {
+			return nil, fmt.Errorf("Failed to get images: %w", err)
+		}
+		images = append(images, image)
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 
 	return images, nil

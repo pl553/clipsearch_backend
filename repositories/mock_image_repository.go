@@ -17,6 +17,10 @@ func (repo *MockImageRepository) Count() (int, error) {
 	return len(repo.images), nil
 }
 
+func (repo *MockImageRepository) GetSimilarImages(embedding []float32, offset int, limit int) ([]models.ImageModel, error) {
+	return nil, nil
+}
+
 func (repo *MockImageRepository) CountWithSha256(sha256 string) (int, error) {
 	counter := 0
 	for _, image := range repo.images {

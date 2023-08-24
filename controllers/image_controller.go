@@ -152,54 +152,37 @@ func (controller *ImageController) GetSearchImages(c *gin.Context) {
 		return
 	}
 
-	conn, err := services.ConnectToImageSearchDaemon("tcp://localhost:" + config.SEARCH_DAEMON_PORT)
+	conn, err := services.ConnectToZmqTextEmbeddingDaemon("tcp://localhost:" + config.ZMQ_TEXT_EMBEDDING_DAEMON_PORT)
 	if err != nil {
 		log.Print(err)
 		c.JSON(http.StatusInternalServerError, internalErrorJson)
 		return
 	}
 
-	var daemonResults []services.ImageSearchResult
-	var count int
+	textEmbedding, err := conn.EncodeText(query.Query)
 
-	if len(query.Query) == 0 {
-		daemonResults = nil
-		count = 0
-	} else {
-		count, daemonResults, err = conn.SearchRequest(query.Query)
-		if err != nil {
-			log.Print(err)
-			c.JSON(http.StatusInternalServerError, internalErrorJson)
-			return
-		}
+	if err != nil {
+		log.Print(err)
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
+		return
 	}
 
-	type ImageSearchResult struct {
-		ImageID      int     `json:"id"`
-		ThumbnailUrl string  `json:"thumbnailUrl"`
-		Score        float32 `json:"score"`
+	count, err := controller.imageService.ImageRepo.Count()
+
+	if err != nil {
+		log.Print(err)
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
+		return
 	}
 
-	results := make([]ImageSearchResult, 0, query.Limit)
-	j := query.Offset
-	for i := 0; i < query.Limit && j < len(daemonResults); i++ {
-		image, err := controller.imageService.ImageRepo.GetById(daemonResults[j+i].ImageID)
-		if err == repositories.ImageNotFoundError {
-			i--
-			j++
-			continue
-		} else if err != nil {
-			log.Print(err)
-			c.JSON(http.StatusInternalServerError, internalErrorJson)
-			return
-		}
-		results = append(results, ImageSearchResult{
-			ImageID:      image.ImageID,
-			ThumbnailUrl: image.ThumbnailUrl,
-			Score:        daemonResults[i].Score,
-		})
-		j++
+	results, err := controller.imageService.ImageRepo.GetSimilarImages(textEmbedding, query.Offset, query.Limit)
+
+	if err != nil {
+		log.Print(err)
+		c.JSON(http.StatusInternalServerError, internalErrorJson)
+		return
 	}
+
 	c.JSON(http.StatusOK, jsend.New(gin.H{
 		"totalCount": count,
 		"images":     results,
