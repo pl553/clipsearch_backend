@@ -16,7 +16,7 @@ func TestDownloadFile(t *testing.T) {
 
 		var buf bytes.Buffer
 		err := DownloadFile(&buf, server.URL, 1)
-		if err == FileSizeExceededError {
+		if err != FileSizeExceededError {
 			t.Fatalf("Expected download to fail with error FileSizeExceeded")
 		}
 		buf.Reset()
@@ -60,7 +60,7 @@ func TestDownloadFile(t *testing.T) {
 		}))
 		var buf bytes.Buffer
 		err := DownloadFile(&buf, server.URL, 8)
-		if err == FileSizeExceededError {
+		if err != FileSizeExceededError {
 			t.Fatalf("Expected download to fail with error FileSizeExceeded")
 		}
 	})

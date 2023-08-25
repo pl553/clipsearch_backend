@@ -33,7 +33,8 @@ func TestImageController(t *testing.T) {
 
 	t.Run("PostImages", func(t *testing.T) {
 		mockRepo := repositories.NewMockImageRepository()
-		imageService := services.NewImageService(mockRepo)
+		mockClip := services.NewMockClipService()
+		imageService := services.NewImageService(mockRepo, mockClip)
 		controller := NewImageController(imageService)
 
 		router := gin.Default()
@@ -67,7 +68,8 @@ func TestImageController(t *testing.T) {
 	t.Run("GetImages", func(t *testing.T) {
 		t.Run("empty repo", func(t *testing.T) {
 			mockRepo := repositories.NewMockImageRepository()
-			imageService := services.NewImageService(mockRepo)
+			mockClip := services.NewMockClipService()
+			imageService := services.NewImageService(mockRepo, mockClip)
 			controller := NewImageController(imageService)
 
 			router := gin.Default()
@@ -83,30 +85,37 @@ func TestImageController(t *testing.T) {
 			result := struct {
 				Status string
 				Data   struct {
-					ImageCount int
+					TotalCount int
 				}
 			}{}
 			err := json.Unmarshal(resp.Body.Bytes(), &result)
 			assert.Equal(t, nil, err)
 
 			assert.Equal(t, "success", result.Status)
-			assert.Equal(t, 0, result.Data.ImageCount)
+			assert.Equal(t, 0, result.Data.TotalCount)
 		})
 
-		t.Run("repo with images", func(t *testing.T) {
+		t.Run("repo with image", func(t *testing.T) {
 			mockRepo := repositories.NewMockImageRepository()
-			imageService := services.NewImageService(mockRepo)
+			mockClip := services.NewMockClipService()
+			imageService := services.NewImageService(mockRepo, mockClip)
 
-			imageService.AddImageByURL(testImageServer.URL, "")
-			imageService.AddImageByURL(testImageServer.URL, "")
-			imageService.AddImageByURL(testImageServer.URL, "")
+			err := imageService.AddImageByURL(testImageServer.URL, "")
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+
+			err = imageService.AddImageByURL(testImageServer.URL, "")
+			if err != services.ImageExistsError {
+				t.Errorf("Expected AddImageByURL to fail with ImageExistsError")
+			}
 
 			controller := NewImageController(imageService)
 
 			router := gin.Default()
 			router.GET("/api/images", controller.GetImages)
 
-			req, _ := http.NewRequest(http.MethodGet, "/api/images?offset=1&limit=2", nil)
+			req, _ := http.NewRequest(http.MethodGet, "/api/images?offset=0&limit=1", nil)
 			resp := httptest.NewRecorder()
 
 			router.ServeHTTP(resp, req)
@@ -116,24 +125,25 @@ func TestImageController(t *testing.T) {
 			result := struct {
 				Status string
 				Data   struct {
-					ImageCount int
+					TotalCount int
 					Images     []models.ImageModel
 				}
 			}{}
-			err := json.Unmarshal(resp.Body.Bytes(), &result)
+			err = json.Unmarshal(resp.Body.Bytes(), &result)
 			assert.Equal(t, nil, err)
 
 			assert.Equal(t, "success", result.Status)
-			assert.Equal(t, 3, result.Data.ImageCount)
-			assert.Equal(t, 2, len(result.Data.Images))
-			assert.Equal(t, testImage.Sha256, result.Data.Images[1].Sha256)
+			assert.Equal(t, 1, result.Data.TotalCount)
+			assert.Equal(t, 1, len(result.Data.Images))
+			assert.Equal(t, testImage.Sha256, result.Data.Images[0].Sha256)
 		})
 	})
 
 	t.Run("GetImageById", func(t *testing.T) {
 		t.Run("should return 404 if id is not provided", func(t *testing.T) {
 			mockRepo := repositories.NewMockImageRepository()
-			imageService := services.NewImageService(mockRepo)
+			mockClip := services.NewMockClipService()
+			imageService := services.NewImageService(mockRepo, mockClip)
 			controller := NewImageController(imageService)
 
 			router := gin.Default()
@@ -149,7 +159,8 @@ func TestImageController(t *testing.T) {
 
 		t.Run("should return data if id is valid", func(t *testing.T) {
 			mockRepo := repositories.NewMockImageRepository()
-			imageService := services.NewImageService(mockRepo)
+			mockClip := services.NewMockClipService()
+			imageService := services.NewImageService(mockRepo, mockClip)
 
 			imageService.AddImageByURL(testImageServer.URL, "")
 

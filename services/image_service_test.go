@@ -22,7 +22,8 @@ func TestImageService(t *testing.T) {
 		}))
 
 		mockRepo := repositories.NewMockImageRepository()
-		imageService := NewImageService(mockRepo)
+		mockClip := NewMockClipService()
+		imageService := NewImageService(mockRepo, mockClip)
 
 		defer server.Close()
 

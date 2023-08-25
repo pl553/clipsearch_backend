@@ -52,9 +52,17 @@ func main() {
 	if port == "" {
 		port = config.DEFAULT_PORT
 	}
-	dbConnString := os.Getenv(config.DATABASE_CONNECTION_URL_ENVAR)
+	zmq_text_port := os.Getenv(config.ZMQ_TEXT_EMBEDDING_DAEMON_PORT_ENVAR)
+	if zmq_text_port == "" {
+		zmq_text_port = config.ZMQ_TEXT_EMBEDDING_DAEMON_DEFAULT_PORT
+	}
+	zmq_image_port := os.Getenv(config.ZMQ_IMAGE_EMBEDDING_DAEMON_PORT_ENVAR)
+	if zmq_image_port == "" {
+		zmq_image_port = config.ZMQ_IMAGE_EMBEDDING_DAEMON_DEFAULT_PORT
+	}
+	dbConnString := os.Getenv(config.PG_DATABASE_CONNECTION_URL_ENVAR)
 	if dbConnString == "" {
-		log.Fatal(fmt.Sprintf("Please define the %v envar", config.DATABASE_CONNECTION_URL_ENVAR))
+		log.Fatal(fmt.Sprintf("Please define the %v envar", config.PG_DATABASE_CONNECTION_URL_ENVAR))
 	}
 	pgPool, err := pgxpool.New(context.Background(), dbConnString)
 	if err != nil {
@@ -63,8 +71,10 @@ func main() {
 	}
 	defer pgPool.Close()
 
+	clipService := services.NewZmqClipService("tcp://localhost:"+zmq_image_port, "tcp://localhost:"+zmq_text_port)
+
 	imageRepository := repositories.NewPgImageRepository(pgPool)
-	imageService := services.NewImageService(imageRepository)
+	imageService := services.NewImageService(imageRepository, clipService)
 	imageController := controllers.NewImageController(imageService)
 
 	//seedRepository(imageRepository, imageService)

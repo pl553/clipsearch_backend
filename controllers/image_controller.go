@@ -152,31 +152,14 @@ func (controller *ImageController) GetSearchImages(c *gin.Context) {
 		return
 	}
 
-	conn, err := services.ConnectToZmqTextEmbeddingDaemon("tcp://localhost:" + config.ZMQ_TEXT_EMBEDDING_DAEMON_PORT)
-	if err != nil {
-		log.Print(err)
-		c.JSON(http.StatusInternalServerError, internalErrorJson)
-		return
-	}
-
-	textEmbedding, err := conn.EncodeText(query.Query)
-
-	if err != nil {
-		log.Print(err)
-		c.JSON(http.StatusInternalServerError, internalErrorJson)
-		return
-	}
-
 	count, err := controller.imageService.ImageRepo.Count()
-
 	if err != nil {
 		log.Print(err)
 		c.JSON(http.StatusInternalServerError, internalErrorJson)
 		return
 	}
 
-	results, err := controller.imageService.ImageRepo.GetSimilarImages(textEmbedding, query.Offset, query.Limit)
-
+	results, err := controller.imageService.GetImagesSimilarToText(query.Query, query.Offset, query.Limit)
 	if err != nil {
 		log.Print(err)
 		c.JSON(http.StatusInternalServerError, internalErrorJson)

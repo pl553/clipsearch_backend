@@ -13,14 +13,14 @@ import (
 )
 
 type ImageService struct {
-	ImageRepo                   repositories.ImageRepository
-	imageFeatureExtractionQueue chan models.ImageModel
+	ImageRepo repositories.ImageRepository
+	clip      ClipService
 }
 
-func NewImageService(ImageRepo repositories.ImageRepository) *ImageService {
+func NewImageService(imageRepo repositories.ImageRepository, clipService ClipService) *ImageService {
 	return &ImageService{
-		ImageRepo:                   ImageRepo,
-		imageFeatureExtractionQueue: make(chan models.ImageModel, 1024),
+		ImageRepo: imageRepo,
+		clip:      clipService,
 	}
 }
 
@@ -63,13 +63,7 @@ func (s *ImageService) AddImageByURL(url string, thumbnailUrl string) error {
 		return ImageExistsError
 	}
 
-	conn, err := ConnectToZmqImageEmbeddingDaemon("tcp://localhost:" + config.ZMQ_IMAGE_EMBEDDING_DAEMON_PORT)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	embedding, err := conn.EncodeImage(buf.Bytes())
+	embedding, err := s.clip.EncodeImage(buf.Bytes())
 	if err != nil {
 		return err
 	}
@@ -87,4 +81,14 @@ func (s *ImageService) AddImageByURL(url string, thumbnailUrl string) error {
 	}
 
 	return nil
+}
+
+func (s *ImageService) GetImagesSimilarToText(textPrompt string, offset int, limit int) ([]models.ImageModel, error) {
+	textEmbedding, err := s.clip.EncodeText(textPrompt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return s.ImageRepo.GetSimilarImages(textEmbedding, offset, limit)
 }
