@@ -126,7 +126,7 @@ func TestImageController(t *testing.T) {
 				Status string
 				Data   struct {
 					TotalCount int
-					Images     []models.ImageModel
+					Images     []models.Image
 				}
 			}{}
 			err = json.Unmarshal(resp.Body.Bytes(), &result)
@@ -177,7 +177,7 @@ func TestImageController(t *testing.T) {
 			assert.Equal(t, http.StatusOK, resp.Code)
 			result := struct {
 				Status string
-				Data   models.ImageModel
+				Data   models.Image
 			}{}
 			err := json.Unmarshal(resp.Body.Bytes(), &result)
 			assert.Equal(t, nil, err)

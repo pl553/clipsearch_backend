@@ -47,6 +47,8 @@ func setupRouter(imageController *controllers.ImageController) *gin.Engine {
 	return router
 }
 
+// @title CLIP search API
+// @version         1.0
 func main() {
 	port := os.Getenv(config.PORT_ENVAR)
 	if port == "" {

@@ -5,19 +5,19 @@ import (
 )
 
 type MockImageRepository struct {
-	images []models.ImageModel
+	images []models.Image
 	ct     int
 }
 
 func NewMockImageRepository() *MockImageRepository {
-	return &MockImageRepository{images: make([]models.ImageModel, 0, 16), ct: 0}
+	return &MockImageRepository{images: make([]models.Image, 0, 16), ct: 0}
 }
 
 func (repo *MockImageRepository) Count() (int, error) {
 	return len(repo.images), nil
 }
 
-func (repo *MockImageRepository) GetSimilarImages(embedding []float32, offset int, limit int) ([]models.ImageModel, error) {
+func (repo *MockImageRepository) GetSimilarImages(embedding []float32, offset int, limit int) ([]models.Image, error) {
 	return nil, nil
 }
 
@@ -31,7 +31,7 @@ func (repo *MockImageRepository) CountWithSha256(sha256 string) (int, error) {
 	return counter, nil
 }
 
-func (repo *MockImageRepository) Create(image *models.ImageModel) (int, error) {
+func (repo *MockImageRepository) Create(image *models.Image) (int, error) {
 	newImage := *image
 	newImage.ImageID = repo.ct + 1
 	repo.ct++
@@ -39,11 +39,11 @@ func (repo *MockImageRepository) Create(image *models.ImageModel) (int, error) {
 	return newImage.ImageID, nil
 }
 
-func (repo *MockImageRepository) GetImages(offset int, limit int) ([]models.ImageModel, error) {
+func (repo *MockImageRepository) GetImages(offset int, limit int) ([]models.Image, error) {
 	return repo.images[offset : offset+limit], nil
 }
 
-func (repo *MockImageRepository) GetById(id int) (*models.ImageModel, error) {
+func (repo *MockImageRepository) GetById(id int) (*models.Image, error) {
 	for _, image := range repo.images {
 		if image.ImageID == id {
 			return &image, nil

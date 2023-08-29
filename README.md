@@ -1,5 +1,6 @@
 # CLIP search backend
-[OpenAI CLIP](https://github.com/openai/CLIP) based image search backend. This program maintains a set of images that you can search through with text prompts. Functionality is exposed through a JSON API.
+[OpenAI CLIP](https://github.com/openai/CLIP) based image search backend. This program maintains a set of images that you can search through with text prompts. Functionality is exposed through a HTTP API.  
+### [API Documentation](https://pl553.github.io/clipsearch_api_redoc/)
 # Setup
 Install [CLIP](https://github.com/openai/CLIP), [pgvector](https://github.com/pgvector/pgvector), [migrate](https://github.com/golang-migrate/migrate), libzmq and libsodium.  
 

@@ -24,7 +24,7 @@ func NewImageService(imageRepo repositories.ImageRepository, clipService ClipSer
 	}
 }
 
-func (s *ImageService) GetCountAndImages(offset int, limit int) (int, []models.ImageModel, error) {
+func (s *ImageService) GetCountAndImages(offset int, limit int) (int, []models.Image, error) {
 	count, err := s.ImageRepo.Count()
 	if err != nil {
 		return 0, nil, err
@@ -68,7 +68,7 @@ func (s *ImageService) AddImageByURL(url string, thumbnailUrl string) error {
 		return err
 	}
 
-	image := models.ImageModel{
+	image := models.Image{
 		SourceUrl:    url,
 		ThumbnailUrl: thumbnailUrl,
 		Sha256:       hashString,
@@ -83,7 +83,7 @@ func (s *ImageService) AddImageByURL(url string, thumbnailUrl string) error {
 	return nil
 }
 
-func (s *ImageService) GetImagesSimilarToText(textPrompt string, offset int, limit int) ([]models.ImageModel, error) {
+func (s *ImageService) GetImagesSimilarToText(textPrompt string, offset int, limit int) ([]models.Image, error) {
 	textEmbedding, err := s.clip.EncodeText(textPrompt)
 
 	if err != nil {

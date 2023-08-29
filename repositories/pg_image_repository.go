@@ -52,7 +52,7 @@ func embeddingToString(embedding []float32) string {
 	return builder.String()
 }
 
-func (repo *PgImageRepository) Create(image *models.ImageModel) (int, error) {
+func (repo *PgImageRepository) Create(image *models.Image) (int, error) {
 	query := `INSERT INTO Images (SourceUrl,ThumbnailUrl,Sha256,Embedding) VALUES ($1,$2,$3,$4) RETURNING ImageID;`
 	rows, err := repo.pool.Query(
 		context.Background(),
@@ -79,7 +79,7 @@ func (repo *PgImageRepository) Create(image *models.ImageModel) (int, error) {
 	return id, nil
 }
 
-func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.ImageModel, error) {
+func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.Image, error) {
 	query := `SELECT ImageID, SourceUrl, ThumbnailUrl, Sha256 FROM Images ORDER BY ImageID LIMIT $1 OFFSET $2;`
 	rows, err := repo.pool.Query(context.Background(), query, limit, offset)
 	defer rows.Close()
@@ -88,10 +88,10 @@ func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.ImageM
 		return nil, fmt.Errorf("Failed to get images: %w", err)
 	}
 
-	images := make([]models.ImageModel, 0, 32)
+	images := make([]models.Image, 0, 32)
 
 	for rows.Next() {
-		var image models.ImageModel
+		var image models.Image
 		if err := rows.Scan(&image.ImageID, &image.SourceUrl, &image.ThumbnailUrl, &image.Sha256); err != nil {
 			return nil, fmt.Errorf("Failed to get images: %w", err)
 		}
@@ -101,8 +101,8 @@ func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.ImageM
 	return images, nil
 }
 
-func (repo *PgImageRepository) GetSimilarImages(embedding []float32, offset int, limit int) ([]models.ImageModel, error) {
-	query := `SELECT ImageID, ThumbnailUrl FROM Images ORDER BY Embedding <#> $1 LIMIT $2 OFFSET $3;`
+func (repo *PgImageRepository) GetSimilarImages(embedding []float32, offset int, limit int) ([]models.Image, error) {
+	query := `SELECT ImageID, SourceUrl, ThumbnailUrl, Sha256 FROM Images ORDER BY Embedding <#> $1 LIMIT $2 OFFSET $3;`
 	rows, err := repo.pool.Query(context.Background(), query, embeddingToString(embedding), limit, offset)
 	defer rows.Close()
 
@@ -110,11 +110,11 @@ func (repo *PgImageRepository) GetSimilarImages(embedding []float32, offset int,
 		return nil, fmt.Errorf("Failed to get images: %w", err)
 	}
 
-	images := make([]models.ImageModel, 0, 32)
+	images := make([]models.Image, 0, 32)
 
 	for rows.Next() {
-		var image models.ImageModel
-		if err := rows.Scan(&image.ImageID, &image.ThumbnailUrl); err != nil {
+		var image models.Image
+		if err := rows.Scan(&image.ImageID, &image.SourceUrl, &image.ThumbnailUrl, &image.Sha256); err != nil {
 			return nil, fmt.Errorf("Failed to get images: %w", err)
 		}
 		images = append(images, image)
@@ -127,7 +127,7 @@ func (repo *PgImageRepository) GetSimilarImages(embedding []float32, offset int,
 	return images, nil
 }
 
-func (repo *PgImageRepository) GetById(id int) (*models.ImageModel, error) {
+func (repo *PgImageRepository) GetById(id int) (*models.Image, error) {
 	query := "SELECT ImageID,SourceUrl,ThumbnailUrl,Sha256 FROM Images WHERE ImageID=$1"
 	rows, err := repo.pool.Query(context.Background(), query, id)
 	defer rows.Close()
@@ -137,7 +137,7 @@ func (repo *PgImageRepository) GetById(id int) (*models.ImageModel, error) {
 	if !rows.Next() {
 		return nil, ImageNotFoundError
 	}
-	var image models.ImageModel
+	var image models.Image
 	if err := rows.Scan(&image.ImageID, &image.SourceUrl, &image.ThumbnailUrl, &image.Sha256); err != nil {
 		return nil, fmt.Errorf("Failed to get image by id: %w", err)
 	}

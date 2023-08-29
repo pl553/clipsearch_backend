@@ -1,0 +1,243 @@
+definitions:
+  dtos.ImagesResponseData:
+    properties:
+      images:
+        items:
+          $ref: '#/definitions/models.Image'
+        type: array
+      totalCount:
+        description: Total amount of images contained in the repository
+        example: 1234
+        type: integer
+    type: object
+  dtos.JsendEmptySuccessResponse:
+    properties:
+      data: {}
+      status:
+        description: Set to "success"
+        example: success
+        type: string
+    type: object
+  dtos.JsendErrorResponse:
+    properties:
+      message:
+        example: An internal error has occurred
+        type: string
+      status:
+        description: Set to "error"
+        example: error
+        type: string
+    type: object
+  dtos.JsendFailResponse:
+    properties:
+      data:
+        additionalProperties:
+          type: string
+        example:
+          bar: invalid
+          foo: also invalid
+        type: object
+      status:
+        description: Set to "fail"
+        example: fail
+        type: string
+    type: object
+  dtos.JsendImageResponse:
+    properties:
+      data:
+        $ref: '#/definitions/models.Image'
+      status:
+        description: Set to "success"
+        example: success
+        type: string
+    type: object
+  dtos.JsendImagesResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dtos.ImagesResponseData'
+      status:
+        description: Set to "success"
+        example: success
+        type: string
+    type: object
+  models.Image:
+    properties:
+      id:
+        example: 102
+        type: integer
+      sha256:
+        example: 671797905015849a2e772d7e152ad3289e7d71703b49c8fb607d00265769c1fb
+        type: string
+      sourceUrl:
+        example: http://localhost:8080/example/image.jpg
+        type: string
+      thumbnailUrl:
+        example: http://localhost:8080/example/image_thumb.jpg
+        type: string
+    type: object
+info:
+  contact: {}
+  title: CLIP search API
+  version: "1.0"
+paths:
+  /api/images:
+    get:
+      description: Returns an array of images from the repository, ordered by ID,
+        skipping the first `offset` images and returning at most `limit`.
+      parameters:
+      - description: How many images to skip
+        in: query
+        name: offset
+        type: integer
+      - description: How many images to return at most
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/dtos.JsendImagesResponse'
+        "400":
+          description: Failure (bad params)
+          schema:
+            $ref: '#/definitions/dtos.JsendFailResponse'
+        "500":
+          description: Failure (internal error)
+          schema:
+            $ref: '#/definitions/dtos.JsendErrorResponse'
+      summary: Get images
+      tags:
+      - images
+    post:
+      description: |-
+        Adds an image to the repository.
+        Image is not added if it already exists in the repository (hash match), or if the file size is larger than allowed (see config)
+      parameters:
+      - description: URL of the image to be added.
+        in: formData
+        name: sourceUrl
+        required: true
+        type: string
+      - description: URL to store as thumbnail for the image. Default is source URL.
+        in: formData
+        name: thumbnailUrl
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/dtos.JsendEmptySuccessResponse'
+        "400":
+          description: Failure (bad params)
+          schema:
+            $ref: '#/definitions/dtos.JsendFailResponse'
+        "500":
+          description: Failure (internal error)
+          schema:
+            $ref: '#/definitions/dtos.JsendErrorResponse'
+      summary: Create image
+      tags:
+      - images
+  /api/images/{id}:
+    delete:
+      description: Deletes an image with the specified ID from the image repository
+      parameters:
+      - description: Image ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully deleted image
+          schema:
+            $ref: '#/definitions/dtos.JsendEmptySuccessResponse'
+        "400":
+          description: Failed to delete image (bad params)
+          schema:
+            $ref: '#/definitions/dtos.JsendFailResponse'
+        "404":
+          description: Failed to delete image (not found)
+          schema:
+            $ref: '#/definitions/dtos.JsendFailResponse'
+        "500":
+          description: Failed to delete image (internal error)
+          schema:
+            $ref: '#/definitions/dtos.JsendErrorResponse'
+      summary: Delete image by ID
+      tags:
+      - image
+    get:
+      description: Returns an image with the specified ID
+      parameters:
+      - description: Image ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/dtos.JsendImageResponse'
+        "400":
+          description: Failure (bad params)
+          schema:
+            $ref: '#/definitions/dtos.JsendFailResponse'
+        "404":
+          description: Failure (not found)
+          schema:
+            $ref: '#/definitions/dtos.JsendFailResponse'
+        "500":
+          description: Failure (internal error)
+          schema:
+            $ref: '#/definitions/dtos.JsendErrorResponse'
+      summary: Get image by ID
+      tags:
+      - image
+  /api/images/search:
+    get:
+      description: Returns an array of images from the repository, ordered by relevance,
+        skipping the first `offset` images and returning at most `limit`.
+      parameters:
+      - description: The text query
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: How many images to skip
+        in: query
+        name: offset
+        type: integer
+      - description: How many images to return at most
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/dtos.JsendImagesResponse'
+        "400":
+          description: Failure (bad params)
+          schema:
+            $ref: '#/definitions/dtos.JsendFailResponse'
+        "500":
+          description: Failure (internal error)
+          schema:
+            $ref: '#/definitions/dtos.JsendErrorResponse'
+      summary: Search the image repository (text query)
+      tags:
+      - search
+swagger: "2.0"

@@ -1,0 +1,356 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "CLIP search API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/api/images": {
+            "get": {
+                "description": "Returns an array of images from the repository, ordered by ID, skipping the first `offset` images and returning at most `limit`.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "images"
+                ],
+                "summary": "Get images",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "How many images to skip",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "How many images to return at most",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendImagesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Failure (bad params)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendFailResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failure (internal error)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Adds an image to the repository.\nImage is not added if it already exists in the repository (hash match), or if the file size is larger than allowed (see config)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "images"
+                ],
+                "summary": "Create image",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "URL of the image to be added.",
+                        "name": "sourceUrl",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "URL to store as thumbnail for the image. Default is source URL.",
+                        "name": "thumbnailUrl",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendEmptySuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Failure (bad params)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendFailResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failure (internal error)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/images/search": {
+            "get": {
+                "description": "Returns an array of images from the repository, ordered by relevance, skipping the first `offset` images and returning at most `limit`.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Search the image repository (text query)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The text query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "How many images to skip",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "How many images to return at most",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendImagesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Failure (bad params)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendFailResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failure (internal error)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/images/{id}": {
+            "get": {
+                "description": "Returns an image with the specified ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "Get image by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Image ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendImageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Failure (bad params)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendFailResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Failure (not found)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendFailResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failure (internal error)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes an image with the specified ID from the image repository",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "Delete image by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Image ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully deleted image",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendEmptySuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Failed to delete image (bad params)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendFailResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Failed to delete image (not found)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendFailResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete image (internal error)",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.JsendErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dtos.ImagesResponseData": {
+            "type": "object",
+            "properties": {
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Image"
+                    }
+                },
+                "totalCount": {
+                    "description": "Total amount of images contained in the repository",
+                    "type": "integer",
+                    "example": 1234
+                }
+            }
+        },
+        "dtos.JsendEmptySuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "status": {
+                    "description": "Set to \"success\"",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "dtos.JsendErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "An internal error has occurred"
+                },
+                "status": {
+                    "description": "Set to \"error\"",
+                    "type": "string",
+                    "example": "error"
+                }
+            }
+        },
+        "dtos.JsendFailResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "example": {
+                        "bar": "invalid",
+                        "foo": "also invalid"
+                    }
+                },
+                "status": {
+                    "description": "Set to \"fail\"",
+                    "type": "string",
+                    "example": "fail"
+                }
+            }
+        },
+        "dtos.JsendImageResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.Image"
+                },
+                "status": {
+                    "description": "Set to \"success\"",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "dtos.JsendImagesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dtos.ImagesResponseData"
+                },
+                "status": {
+                    "description": "Set to \"success\"",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "models.Image": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 102
+                },
+                "sha256": {
+                    "type": "string",
+                    "example": "671797905015849a2e772d7e152ad3289e7d71703b49c8fb607d00265769c1fb"
+                },
+                "sourceUrl": {
+                    "type": "string",
+                    "example": "http://localhost:8080/example/image.jpg"
+                },
+                "thumbnailUrl": {
+                    "type": "string",
+                    "example": "http://localhost:8080/example/image_thumb.jpg"
+                }
+            }
+        }
+    }
+}
