@@ -60,6 +60,7 @@ func TestImageController(t *testing.T) {
 			assert.Equal(t, http.StatusOK, resp.Code)
 			var result map[string]any
 			err := json.Unmarshal(resp.Body.Bytes(), &result)
+			
 			assert.Equal(t, nil, err)
 			assert.Equal(t, "success", result["status"])
 		})
@@ -162,7 +163,9 @@ func TestImageController(t *testing.T) {
 			mockClip := services.NewMockClipService()
 			imageService := services.NewImageService(mockRepo, mockClip)
 
-			imageService.AddImageByURL(testImageServer.URL, "")
+			if err := imageService.AddImageByURL(testImageServer.URL, ""); err != nil {
+			    t.Fatal(err.Error())
+			}
 
 			controller := NewImageController(imageService)
 
