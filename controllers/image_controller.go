@@ -110,7 +110,12 @@ type PostImagesForm struct {
 // @Failure 500 {object} dtos.JsendErrorResponse "Failure (internal error)"
 // @Router /api/images [post]
 func (controller *ImageController) PostImages(c *gin.Context) {
-	c.Request.ParseMultipartForm(2048)
+	if err := c.Request.ParseMultipartForm(2048); err != nil {
+	    c.JSON(http.StatusBadRequest, dtos.NewJsendFailResponse(map[string]string{
+	        "requestBody": err.Error(),
+	    }))
+	    return
+	}
 	var form PostImagesForm
 	if err := binding.ShouldBind(&form, c.Request.Form); err != nil {
 		c.JSON(http.StatusBadRequest, dtos.NewJsendFailResponse(err.(binding.BindingError).FieldErrors))
