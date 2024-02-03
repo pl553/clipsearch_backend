@@ -14,27 +14,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func seedRepository(imageRepository repositories.ImageRepository, imageService *services.ImageService) {
-	count, err := imageRepository.Count()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if count == 0 {
-		seedImageURLs := []string{
-			"http://localhost/static/images/1.gif",
-			"http://localhost/static/images/2.jpg",
-			"http://localhost/static/images/3.jpg",
-		}
-
-		for _, imageURL := range seedImageURLs {
-			if err := imageService.AddImageByURL(imageURL, ""); err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-}
-
 func setupRouter(imageController *controllers.ImageController) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -77,8 +56,6 @@ func main() {
 	imageRepository := repositories.NewPgImageRepository(pgPool)
 	imageService := services.NewImageService(imageRepository, clipService)
 	imageController := controllers.NewImageController(imageService)
-
-	//seedRepository(imageRepository, imageService)
 
 	router := setupRouter(imageController)
 	err = router.Run(":" + port)
