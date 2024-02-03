@@ -94,7 +94,7 @@ func ShouldBind(dst any, src map[string][]string) error {
 	if err := decoder.Decode(dst, src); err != nil {
 		err, ok := err.(schema.MultiError)
 		if err != nil && !ok {
-			log.Print(fmt.Sprintf("ShouldBind: unknown error %s", err))
+			log.Printf("ShouldBind: unknown error %s", err)
 			return genericError
 		}
 		b.FieldErrors = schemaMultiErrorToFieldErrors(err)
