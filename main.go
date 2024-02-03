@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
@@ -64,7 +63,7 @@ func main() {
 	}
 	dbConnString := os.Getenv(config.PG_DATABASE_CONNECTION_URL_ENVAR)
 	if dbConnString == "" {
-		log.Fatal(fmt.Sprintf("Please define the %v envar", config.PG_DATABASE_CONNECTION_URL_ENVAR))
+		log.Fatalf("Please define the %v envar", config.PG_DATABASE_CONNECTION_URL_ENVAR)
 	}
 	pgPool, err := pgxpool.New(context.Background(), dbConnString)
 	if err != nil {
