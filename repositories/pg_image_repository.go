@@ -82,11 +82,12 @@ func (repo *PgImageRepository) Create(image *models.Image) (int, error) {
 func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.Image, error) {
 	query := `SELECT ImageID, SourceUrl, ThumbnailUrl, Sha256 FROM Images ORDER BY ImageID LIMIT $1 OFFSET $2;`
 	rows, err := repo.pool.Query(context.Background(), query, limit, offset)
-	defer rows.Close()
-
+	
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get images: %w", err)
 	}
+	
+	defer rows.Close()
 
 	images := make([]models.Image, 0, 32)
 
@@ -104,11 +105,12 @@ func (repo *PgImageRepository) GetImages(offset int, limit int) ([]models.Image,
 func (repo *PgImageRepository) GetSimilarImages(embedding []float32, offset int, limit int) ([]models.Image, error) {
 	query := `SELECT ImageID, SourceUrl, ThumbnailUrl, Sha256 FROM Images ORDER BY Embedding <#> $1 LIMIT $2 OFFSET $3;`
 	rows, err := repo.pool.Query(context.Background(), query, embeddingToString(embedding), limit, offset)
-	defer rows.Close()
-
+	
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get images: %w", err)
 	}
+	
+	defer rows.Close()
 
 	images := make([]models.Image, 0, 32)
 
@@ -130,10 +132,13 @@ func (repo *PgImageRepository) GetSimilarImages(embedding []float32, offset int,
 func (repo *PgImageRepository) GetById(id int) (*models.Image, error) {
 	query := "SELECT ImageID,SourceUrl,ThumbnailUrl,Sha256 FROM Images WHERE ImageID=$1"
 	rows, err := repo.pool.Query(context.Background(), query, id)
-	defer rows.Close()
+
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get image by id: %w", err)
 	}
+
+	defer rows.Close()
+	
 	if !rows.Next() {
 		return nil, ImageNotFoundError
 	}
