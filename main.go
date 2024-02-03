@@ -82,5 +82,9 @@ func main() {
 	//seedRepository(imageRepository, imageService)
 
 	router := setupRouter(imageController)
-	router.Run(":" + port)
+	err = router.Run(":" + port)
+	
+	if err != nil {
+	    log.Fatal(err.Error())
+	}
 }
