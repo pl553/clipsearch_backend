@@ -23,6 +23,7 @@ jobs:
           cache: false
       - name: add-go-modules
         run: |
+          sudo apt-get install libczmq4 libzmq5 libsodium23
           go mod tidy
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
