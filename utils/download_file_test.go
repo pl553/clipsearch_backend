@@ -10,7 +10,10 @@ import (
 func TestDownloadFile(t *testing.T) {
 	t.Run("small file", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			rw.Write([]byte("OK"))
+			_, err := rw.Write([]byte("OK"))
+			if err != nil {
+			    t.Fatalf(err.Error())
+			}
 		}))
 		defer server.Close()
 
@@ -36,7 +39,10 @@ func TestDownloadFile(t *testing.T) {
 	t.Run("big file", func(t *testing.T) {
 		serverFileContent := bytes.Repeat([]byte("1"), 500*1024)
 		server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			rw.Write(serverFileContent)
+			_, err := rw.Write(serverFileContent)
+			if err != nil {
+			    t.Fatalf(err.Error())
+			}
 		}))
 		var buf bytes.Buffer
 		err := DownloadFile(&buf, server.URL, 500*1024)
@@ -56,7 +62,10 @@ func TestDownloadFile(t *testing.T) {
 	t.Run("content length", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.Header().Set("Content-Length", "16") // it should check content-length first
-			rw.Write([]byte("OK"))
+			_, err := rw.Write([]byte("OK"))
+			if err != nil {
+			    t.Fatalf(err.Error())
+			}
 		}))
 		var buf bytes.Buffer
 		err := DownloadFile(&buf, server.URL, 8)
