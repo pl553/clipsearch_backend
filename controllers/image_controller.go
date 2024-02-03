@@ -7,6 +7,7 @@ import (
 	"clipsearch/repositories"
 	"clipsearch/services"
 	"clipsearch/utils"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -110,9 +111,10 @@ type PostImagesForm struct {
 // @Failure 500 {object} dtos.JsendErrorResponse "Failure (internal error)"
 // @Router /api/images [post]
 func (controller *ImageController) PostImages(c *gin.Context) {
-	if err := c.Request.ParseMultipartForm(2048); err != nil {
+    // ParseMultipartForm also calls ParseForm
+	if err := c.Request.ParseMultipartForm(2048); err != nil && !errors.Is(err, http.ErrNotMultipart) {
 	    c.JSON(http.StatusBadRequest, dtos.NewJsendFailResponse(map[string]string{
-	        "requestBody": err.Error(),
+	        "request": err.Error(),
 	    }))
 	    return
 	}
