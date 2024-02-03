@@ -1,4 +1,4 @@
-name: golangci-lint
+name: golangci-lint and test
 on:
   push:
     branches:
@@ -12,8 +12,8 @@ permissions:
   # pull-requests: read
 
 jobs:
-  golangci:
-    name: lint
+  golangci-and-test:
+    name: lint and test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -51,9 +51,11 @@ jobs:
 
           # Optional: if set to true, then the action won't cache or restore ~/go/pkg.
           # skip-pkg-cache: true
-
+          
           # Optional: if set to true, then the action won't cache or restore ~/.cache/go-build.
           # skip-build-cache: true
 
           # Optional: The mode to install golangci-lint. It can be 'binary' or 'goinstall'.
           # install-mode: "goinstall"
+      - name: Run tests
+        run: go test ./...
